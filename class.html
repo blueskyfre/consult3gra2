@@ -497,7 +497,7 @@ var ClassPage = (function () {
   }
 
   function _api(action, params, method) {
-    var url    = CONFIG.DEPLOY;
+    var url    = Config.DEPLOY;
     var query  = Object.assign({ action: action }, params || {});
     var qs     = Object.keys(query)
                    .map(function(k){ return encodeURIComponent(k)+'='+encodeURIComponent(query[k]); })
