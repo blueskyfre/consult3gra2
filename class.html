@@ -695,7 +695,7 @@ var ClassPage = (function () {
           '<button class="btn btn-outline" onclick="ClassPage.openExtraModal(' + idx + ')" style="border-color:#7c3aed;color:#7c3aed;" onmouseover="this.style.background=\'#f5f3ff\'" onmouseout="this.style.background=\'#fff\'">' +
             '📋 개인별 공지사항 보기' +
           '</button>' +
-          '<span style="margin-left:10px;font-size:0.875rem;color:#7c3aed;font-weight:600;">' + _escHtml(extraTitle) + ' 관련 공지 사항이 있습니다.</span>' +
+          '<span style="margin-left:10px;font-size:0.875rem;color:#7c3aed;font-weight:600;">' + (extraItems.length > 0 ? _escHtml(extraTitle) + ' 관련 공지 사항이 있습니다.' : '개인 공지사항이 없습니다.') + '</span>' +
         '</div>';
     }
 
