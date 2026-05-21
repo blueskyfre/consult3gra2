@@ -351,15 +351,8 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
 <script>
-// ============================================================
-// AdminCore 네임스페이스 (인라인)
-// 역할: 모든 모듈이 공유하는 상태(state), API 호출, 유틸 함수
-// admin_core.js 내용을 인라인으로 삽입 — 네트워크 로드 순서 문제 방지
-// ============================================================
 var AdminCore = (function () {
-  // ─── GS Web App URL (config.js 에서 주입) ───────────────────
   var _WEB_APP_URL = (typeof Config !== 'undefined') ? Config.DEPLOY : '';
-  // ─── 글자수 제한 (바이트) ────────────────────────────────────
   var BYTE_LIMIT = {
     '자율활동':   1500,
     '동아리활동': 1500,
@@ -367,9 +360,6 @@ var AdminCore = (function () {
     '개인별세특': 1500,
     '행동발달':   1500
   };
-  // ─── 공유 상태 ───────────────────────────────────────────────
-  // 모든 모듈은 AdminCore.state 를 직접 참조·변경합니다.
-  // (단, 외부에서 state 객체 자체를 교체하지 말고 프로퍼티만 변경하세요)
   var state = {
     adminId:          '',
     adminName:        '',
@@ -381,13 +371,11 @@ var AdminCore = (function () {
     currentArea:      '',
     currentStudentId: '',
     studentList:      [],
-    suneungData:      null,   // 수능선택 원본 캐시 (개별/전체 전환용)
-    hasUnsavedEdit:   false,  // 미저장 편집 여부
-    isLoading:        false,  // 콘텐츠 로딩 중 여부
-    pendingDownload:  false   // 로딩 완료 후 자동 다운로드 예약
+    suneungData:      null,   
+    hasUnsavedEdit:   false,  
+    isLoading:        false,  
+    pendingDownload:  false   
   };
-  // ─── API 호출 (GET) ──────────────────────────────────────────
-  // GS Web App 과의 통신 창구. action 명과 params 객체를 받아 JSON 반환.
   async function apiGet(action, params) {
     params = params || {};
     var url = new URL(_WEB_APP_URL);
@@ -409,10 +397,6 @@ var AdminCore = (function () {
       throw new Error('응답 파싱 오류: ' + e.message + ' / 응답내용: ' + text.substring(0, 100));
     }
   }
-  // ─── API 호출 (POST) ─────────────────────────────────────────
-  // 파일 데이터 등 큰 payload 전송 시 사용.
-  // GAS는 CORS preflight(OPTIONS)를 지원하지 않으므로
-  // Content-Type을 text/plain으로 설정해 simple request로 전송.
   async function apiPost(action, params) {
     params = params || {};
     var body = Object.assign({ action: action }, params);
@@ -433,7 +417,6 @@ var AdminCore = (function () {
       throw new Error('응답 파싱 오류: ' + e.message + ' / 응답내용: ' + text.substring(0, 100));
     }
   }
-  // ─── 유틸: 바이트 계산 ───────────────────────────────────────
   function calcBytes(str) {
     if (!str) return 0;
     try { return new TextEncoder().encode(String(str)).length; }
@@ -446,7 +429,6 @@ var AdminCore = (function () {
       return b;
     }
   }
-  // ─── 유틸: HTML 이스케이프 ───────────────────────────────────
   function escapeHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g,  '&amp;')
@@ -455,7 +437,6 @@ var AdminCore = (function () {
       .replace(/"/g,  '&quot;')
       .replace(/'/g,  '&#39;');
   }
-  // ─── 유틸: 클립보드 폴백 복사 ───────────────────────────────
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text;
@@ -467,7 +448,6 @@ var AdminCore = (function () {
     try { document.execCommand('copy'); } catch (e) {}
     document.body.removeChild(ta);
   }
-  // ─── 공개 API ────────────────────────────────────────────────
   return {
     state:        state,
     BYTE_LIMIT:   BYTE_LIMIT,
@@ -485,22 +465,13 @@ var AdminCore = (function () {
 <script src="admin_repoarea.js"></script>
 <script src="admin_course.js"></script>
 <script>
-// ============================================================
-// Admin 퍼사드 네임스페이스 (IIFE)
-// 역할:
-//   ① HTML onclick="Admin.xxx()" 의 단일 진입점
-//   ② init, 학생 명단, 다운로드, 로그아웃, 생기부 공통 헬퍼
-//   ③ 각 메뉴 모듈(AdminSuneung 등)로 위임(delegate)
-// ============================================================
 var Admin = (function () {
-  // ─── 미저장 경고 (페이지 이탈) ──────────────────────────────
   window.addEventListener('beforeunload', function (e) {
     if (AdminCore.state.hasUnsavedEdit) {
       e.preventDefault();
       e.returnValue = '';
     }
   });
-  // ─── 초기화 ──────────────────────────────────────────────────
   function _init() {
     var raw = sessionStorage.getItem('adminInfo');
     if (!raw) {
@@ -519,7 +490,6 @@ var Admin = (function () {
     _renderHeader();
     _loadStudentList();
   }
-  // ─── 헤더 렌더링 ─────────────────────────────────────────────
   function _renderHeader() {
     document.getElementById('admin-greeting').textContent =
       AdminCore.state.adminName + ' 선생님 접속했습니다.';
@@ -551,8 +521,6 @@ var Admin = (function () {
         + AdminCore.state.adminClass + '반</span>';
     }
   }
-  // ─── 학생 명단 로드 ──────────────────────────────────────────
-  // GS action: adminGetStudentList
   async function _loadStudentList() {
     _showSidebarSkeleton();
     NaviComponent.showLoading('불러오는 중입니다...');
@@ -639,7 +607,6 @@ var Admin = (function () {
       ul.appendChild(li);
     });
   }
-  // ─── 메뉴 전환 ───────────────────────────────────────────────
   function _onMenuClick(menu) {
     if (AdminCore.state.hasUnsavedEdit) {
       _showUnsavedModal('페이지를 이동하면 저장하지 않은 편집 내용이 사라집니다.', function () {
@@ -694,7 +661,6 @@ var Admin = (function () {
       AdminCourse.init();
     }
   }
-  // ─── 화살표 안내 메시지 공통 생성 ────────────────────────────
   function _msgArrow(color, text) {
     var c = color === 'emerald' ? { ring: 'bg-emerald-100', icon: 'text-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' }
                                 : { ring: 'bg-blue-100',    icon: 'text-blue-500',    text: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200' };
@@ -705,7 +671,6 @@ var Admin = (function () {
          + '<p class="text-base font-semibold ' + c.text + ' ' + c.bg + ' border ' + c.border + ' rounded-xl px-5 py-3 shadow-sm">' + text + '</p>'
          + '</div>';
   }
-  // ─── 콘텐츠 영역 유틸 (모듈에서 Admin.xxx() 로 호출) ────────
   function showContentSkeleton(rows) {
     var html = '<div class="p-4 space-y-3">';
     for (var i = 0; i < (rows || 6); i++) {
@@ -726,7 +691,6 @@ var Admin = (function () {
       + '<p class="text-red-600 font-medium">' + (msg || '오류가 발생했습니다.') + '</p>'
       + '</div>';
   }
-  // ─── 생기부 공통 헬퍼 ────────────────────────────────────────
   function _copyGibuContent(areaKey) {
     var srcEl = document.getElementById('gibu-original-' + areaKey);
     if (!srcEl) return;
@@ -802,7 +766,6 @@ var Admin = (function () {
       if (btn) { btn.dataset.expanded = '1'; btn.querySelector('span').textContent = '접기'; }
     }
   }
-  // ─── 다운로드 ─────────────────────────────────────────────────
   var _infoToastTimer = null;
   function _showInfoToast(msg) {
     var existing = document.getElementById('_info-toast');
@@ -1016,7 +979,6 @@ var Admin = (function () {
       }
     }, 0);
   }
-  // ─── 저장 성공 모달 ──────────────────────────────────────────
   var _saveSuccessTimer = null;
   function showSaveSuccess(msg) {
     var modal = document.getElementById('save-success-modal');
@@ -1041,7 +1003,6 @@ var Admin = (function () {
     card.classList.add('scale-95', 'opacity-0');
     setTimeout(function () { modal.classList.add('hidden'); }, 180);
   }
-  // ─── 미저장 경고 모달 ────────────────────────────────────────
   var _unsavedCallback = null;
   function showUnsavedModal(msg, onConfirm) {
     _unsavedCallback = onConfirm || null;
@@ -1071,7 +1032,6 @@ var Admin = (function () {
     if (card) { card.classList.remove('scale-100', 'opacity-100'); card.classList.add('scale-95', 'opacity-0'); }
     setTimeout(function () { if (modal) modal.classList.add('hidden'); _unsavedCallback = null; }, 180);
   }
-  // ─── 로그아웃 ─────────────────────────────────────────────────
   function _logout() {
     var gibuModal = document.getElementById('gibu-write-modal');
     var ta = document.getElementById('gibu-modal-textarea');
@@ -1087,7 +1047,6 @@ var Admin = (function () {
   }
   function _confirmLogout() { sessionStorage.removeItem('adminInfo'); location.href = 'index.html'; }
   function _cancelLogout()  { document.getElementById('logout-modal').classList.add('hidden'); }
-  // ─── 공개 API (HTML onclick 진입점) ─────────────────────────
   return {
     init:                _init,
     onMenuClick:         _onMenuClick,
