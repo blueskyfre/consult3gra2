@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인</title>
+  <script src="config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @keyframes skeleton-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton-box {
+      background: linear-gradient(90deg, #dbeafe 25%, #eff6ff 50%, #dbeafe 75%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      border-radius: 0.5rem;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes modalFadeOut {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0; transform: scale(0.9); }
+    }
+    .modal-animate-in {
+      animation: modalFadeIn 0.25s ease-out forwards;
+    }
+    .modal-animate-out {
+      animation: modalFadeOut 0.2s ease-in forwards;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      position: relative;
+      overflow-x: hidden;
+    }
+    #bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-color: #eef4fb;
+      background-image: none; 
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+    }
+    #bg-layer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(219,234,254,0.55) 0%,
+        rgba(239,246,255,0.40) 50%,
+        rgba(207,226,255,0.50) 100%
+      );
+    }
+    #content-layer {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    @media (min-width: 640px) {
+    #content-layer {
+      justify-content: flex-end;
+      padding: 1rem 15% 1rem 1rem;     
+    }
+    }
+    @media (max-width: 639px) {
+    #content-layer {
+      justify-content: center;
+      padding: 1rem;
+    }
+    }
+    .card {
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      border: 1px solid rgba(186,220,255,0.55);
+      box-shadow:
+        0 2px 8px rgba(59,130,246,0.07),
+        0 12px 40px rgba(59,130,246,0.10);
+      padding: 2.5rem 2rem;
+    }
+    @media (min-width: 640px) {
+      .card { padding: 3rem 2.5rem; }
+    }
+    .page-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #1e3a5f;
+      letter-spacing: -0.02em;
+    }
+    @media (min-width: 640px) {
+      .page-title { font-size: 1.5rem; }
+    }
+    .divider {
+      width: 2rem;
+      height: 2px;
+      background: linear-gradient(90deg, #3b82f6, #93c5fd);
+      border-radius: 2px;
+      margin: 0.6rem auto 0;
+    }
+    .field-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #4b7ab8;
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.01em;
+    }
+    .field-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid #bfdbfe;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-family: 'Noto Sans KR', sans-serif;
+      color: #1e3a5f;
+      background: rgba(239,246,255,0.7);
+      outline: none;
+      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    }
+    .field-input::placeholder { color: #a8c4e0; }
+    .field-input:focus {
+      border-color: #3b82f6;
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 500;
+      font-family: 'Noto Sans KR', sans-serif;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: filter 0.18s, transform 0.12s, box-shadow 0.18s;
+      letter-spacing: 0.01em;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.18);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 4px 14px rgba(37,99,235,0.28);
+    }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-ghost {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: transparent;
+      color: #3b82f6;
+      font-size: 0.85rem;
+      font-weight: 400;
+      font-family: 'Noto Sans KR', sans-serif;
+      border: 1.5px solid #bfdbfe;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color 0.18s, color 0.18s, background 0.18s;
+    }
+    .btn-ghost:hover {
+      border-color: #93c5fd;
+      color: #1d4ed8;
+      background: rgba(219,234,254,0.45);
+    }
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+    .btn-row .btn-ghost { flex: 1; }
+    .field-hint {
+      font-size: 0.72rem;
+      color: #7db0d8;
+      margin-top: 0.3rem;
+    }
+    .skeleton-btn {
+      background: linear-gradient(90deg, #dbeafe 25%, #eff6ff 50%, #dbeafe 75%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      border-radius: 10px;
+    }
+    .dot-bounce {
+      width: 6px;
+      height: 6px;
+      background: #3b82f6;
+      border-radius: 50%;
+    }
+    .notice-item {
+      background: #f0f7ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .notice-tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #2563eb;
+      margin-bottom: 0.4rem;
+    }
+    .status-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .status-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1e3a5f;
+      margin-bottom: 0.5rem;
+    }
+    .status-msg {
+      font-size: 0.88rem;
+      color: #7db0d8;
+      line-height: 1.6;
+    }
+    .alert-box {
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 18px;
+      border: 1px solid #bfdbfe;
+      box-shadow: 0 20px 60px rgba(37,99,235,0.13);
+      width: 100%;
+      max-width: 22rem;
+      padding: 2rem 1.75rem;
+    }
+    .alert-btn-success { background: linear-gradient(135deg,#2563eb,#3b82f6); color: #fff; }
+    .alert-btn-success:hover { filter: brightness(1.08); }
+    .alert-btn-error   { background: #ef4444; color: #fff; }
+    .alert-btn-error:hover   { background: #dc2626; }
+    .alert-btn-info    { background: linear-gradient(135deg,#2563eb,#60a5fa); color: #fff; }
+    .alert-btn-info:hover    { filter: brightness(1.08); }
+    .alert-btn-warning { background: #f59e0b; color: #fff; }
+    .alert-btn-warning:hover { background: #d97706; }
+    .loading-card {
+      background: rgba(255,255,255,0.94);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 14px;
+      border: 1px solid #bfdbfe;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 8px 32px rgba(37,99,235,0.12);
+    }
+    .fields { display: flex; flex-direction: column; gap: 1.1rem; }
+    #sub-title { color: #5a8fc4; }
+  </style>
+</head>
+<body>
+  <div id="bg-layer"></div>
+  <div id="content-layer">
+  <div id="skeleton-screen" class="w-full max-w-md">
+    <div class="card">
+      <div class="flex flex-col items-center mb-8">
+        <div class="skeleton-box h-6 w-44 mb-3"></div>
+        <div class="skeleton-box h-4 w-32"></div>
+      </div>
+      <div class="fields">
+        <div>
+          <div class="skeleton-box h-3 w-14 mb-2"></div>
+          <div class="skeleton-box h-11 w-full"></div>
+        </div>
+        <div>
+          <div class="skeleton-box h-3 w-18 mb-2"></div>
+          <div class="skeleton-box h-11 w-full"></div>
+        </div>
+        <div class="skeleton-btn h-11 w-full"></div>
+        <div class="btn-row">
+          <div class="skeleton-box h-10 flex-1"></div>
+          <div class="skeleton-box h-10 flex-1"></div>
+        </div>
+      </div>
+      <div class="mt-8 flex items-center justify-center gap-1.5">
+        <div class="dot-bounce animate-bounce" style="animation-delay: 0s;"></div>
+        <div class="dot-bounce animate-bounce" style="animation-delay: 0.15s;"></div>
+        <div class="dot-bounce animate-bounce" style="animation-delay: 0.3s;"></div>
+        <span id="skeleton-status-text" class="text-xs text-gray-400 ml-2">데이터를 불러오는 중...</span>
+      </div>
+    </div>
+  </div>
+  <div id="screen-preparing" class="hidden w-full max-w-md">
+    <div class="card text-center">
+      <div class="status-icon">⏳</div>
+      <h2 class="status-title">서비스 준비 중</h2>
+      <p id="preparing-message" class="status-msg"></p>
+    </div>
+  </div>
+  <div id="screen-closed" class="hidden w-full max-w-md">
+    <div class="card text-center">
+      <div class="status-icon">🚫</div>
+      <h2 class="status-title" style="color:#ef4444;">마감되었습니다</h2>
+      <p id="closed-message" class="status-msg"></p>
+    </div>
+  </div>
+  <div id="screen-login" class="hidden w-full max-w-md">
+    <div class="card">
+      <div class="text-center mb-8">
+        <h1 id="main-title" class="page-title"></h1>
+        <div class="divider"></div>
+        <p id="sub-title" class="text-sm text-gray-400 mt-3"></p>
+      </div>
+      <div class="fields">
+        <div>
+          <label class="field-label">아이디</label>
+          <input type="email" id="login-id" placeholder="example@email.com" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label">비밀번호</label>
+          <input type="password" id="login-pw" placeholder="비밀번호를 입력하세요" class="field-input" />
+        </div>
+        <button onclick="Index.doLogin()" class="btn-primary">로그인</button>
+        <div class="btn-row">
+          <button onclick="Index.showScreen('screen-register')" class="btn-ghost">회원가입</button>
+          <button onclick="Index.showScreen('screen-find-pw')" class="btn-ghost">비밀번호 찾기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="screen-register" class="hidden w-full max-w-md">
+    <div class="card">
+      <div class="text-center mb-8">
+        <h2 class="page-title">회원가입</h2>
+        <div class="divider"></div>
+      </div>
+      <div class="fields">
+        <div>
+          <label class="field-label">학번</label>
+          <input type="text" id="reg-studentId" placeholder="예시) 3901" class="field-input" autocomplete="off" />
+        </div>
+        <div>
+          <label class="field-label">이름</label>
+          <input type="text" id="reg-name" placeholder="홍길동 (반드시 한글로 입력하세요)" class="field-input" autocomplete="off" />
+        </div>
+        <div>
+          <label class="field-label">아이디 (이메일)</label>
+          <input type="email" id="reg-email" placeholder="example@email.com" class="field-input" autocomplete="off" />
+          <p class="field-hint">※ 비밀번호 분실 시 이 이메일로 비밀번호를 발송합니다.</p>
+        </div>
+        <div>
+          <label class="field-label">비밀번호</label>
+          <input type="password" id="reg-password" placeholder="비밀번호를 입력하세요" class="field-input" autocomplete="new-password" />
+        </div>
+        <div>
+          <label class="field-label">비밀번호 확인</label>
+          <input type="password" id="reg-password-confirm" placeholder="비밀번호를 다시 입력하세요" class="field-input" autocomplete="new-password" />
+          <p id="reg-pw-match-msg" class="text-xs mt-1 hidden"></p>
+        </div>
+        <button onclick="Index.doRegister()" class="btn-primary">가입하기</button>
+        <button onclick="Index.showScreen('screen-login')" class="btn-ghost">← 로그인으로 돌아가기</button>
+      </div>
+    </div>
+  </div>
+  <div id="screen-find-pw" class="hidden w-full max-w-md">
+    <div class="card">
+      <div class="text-center mb-8">
+        <h2 class="page-title">비밀번호 찾기</h2>
+        <div class="divider"></div>
+      </div>
+      <div class="fields">
+        <div>
+          <label class="field-label">학번</label>
+          <input type="text" id="find-studentId" placeholder="예시) 3901" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label">이름</label>
+          <input type="text" id="find-name" placeholder="예시) 홍길동" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label">이메일 (가입 시 입력한 이메일)</label>
+          <input type="email" id="find-email" placeholder="example@email.com" class="field-input" />
+        </div>
+        <button onclick="Index.doFindPassword()" class="btn-primary">비밀번호 찾기</button>
+        <button onclick="Index.showScreen('screen-change-pw')" class="btn-ghost">비밀번호 변경</button>
+        <button onclick="Index.showScreen('screen-login')" class="btn-ghost">← 로그인으로 돌아가기</button>
+      </div>
+    </div>
+  </div>
+  <div id="screen-change-pw" class="hidden w-full max-w-md">
+    <div class="card">
+      <div class="text-center mb-8">
+        <h2 class="page-title">비밀번호 변경</h2>
+        <div class="divider"></div>
+      </div>
+      <div class="fields">
+        <div>
+          <label class="field-label">학번</label>
+          <input type="text" id="chpw-studentId" placeholder="예시) 3901" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label">이름</label>
+          <input type="text" id="chpw-name" placeholder="예시) 홍길동" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label">이메일 주소</label>
+          <input type="email" id="chpw-email" placeholder="example@email.com" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label">기존 비밀번호</label>
+          <input type="password" id="chpw-current" placeholder="현재 사용 중인 비밀번호" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label">새로운 비밀번호</label>
+          <input type="password" id="chpw-new" placeholder="새 비밀번호를 입력하세요" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label">새로운 비밀번호 재확인</label>
+          <input type="password" id="chpw-new-confirm" placeholder="새 비밀번호를 다시 입력하세요" class="field-input" />
+          <p id="chpw-match-msg" class="text-xs mt-1 hidden"></p>
+        </div>
+        <button onclick="Index.doChangePassword()" class="btn-primary">비밀번호 변경하기</button>
+        <button onclick="Index.showScreen('screen-find-pw')" class="btn-ghost">← 비밀번호 찾기로 돌아가기</button>
+      </div>
+    </div>
+  </div>
+  <div id="screen-waiting" class="hidden w-full max-w-md">
+    <div class="card text-center">
+      <div class="status-icon">📅</div>
+      <h2 class="status-title">로그인 성공!</h2>
+      <p id="waiting-message" class="status-msg mb-6"></p>
+      <button onclick="Index.showScreen('screen-login')" class="btn-ghost" style="width:auto; padding: 0.6rem 1.5rem; display:inline-block;">돌아가기</button>
+    </div>
+  </div>
+  <div id="modal-notice" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-6 sm:p-8">
+      <h3 class="text-base font-semibold text-gray-800 mb-5 text-center tracking-tight">📢 공지사항</h3>
+      <div id="modal-notice-content" class="space-y-3 text-sm text-gray-700"></div>
+      <button onclick="Index.closeNoticeAndProceed()" class="btn-primary mt-6">확인</button>
+    </div>
+  </div>
+  <div id="modal-alert" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 z-[60]">
+    <div id="modal-alert-box" class="alert-box">
+      <div class="flex flex-col items-center text-center">
+        <div id="modal-alert-icon" class="text-3xl mb-3"></div>
+        <h3 id="modal-alert-title" class="text-base font-semibold text-gray-800 mb-2"></h3>
+        <p id="modal-alert-message" class="text-sm text-gray-500 whitespace-pre-wrap mb-6 leading-relaxed"></p>
+        <button onclick="Index.closeAlert()"
+          id="modal-alert-btn"
+          class="w-full font-medium py-2.5 rounded-xl transition text-sm">
+          확인
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-40">
+    <div class="loading-card flex flex-col items-center gap-3">
+      <div class="flex items-center gap-1.5">
+        <div class="dot-bounce animate-bounce" style="animation-delay: 0s;"></div>
+        <div class="dot-bounce animate-bounce" style="animation-delay: 0.15s;"></div>
+        <div class="dot-bounce animate-bounce" style="animation-delay: 0.3s;"></div>
+      </div>
+      <p id="loading-text" class="text-sm text-gray-500">처리 중...</p>
+    </div>
+  </div>
+  </div>
+  <script>
+    (function() {
+      var bgLayer = document.getElementById('bg-layer');
+      if (typeof Config !== 'undefined' && Config.BACKGROUND_IMG) {
+        var img = new Image();
+        img.onload = function() {
+          bgLayer.style.backgroundImage = 'url(' + Config.BACKGROUND_IMG + ')';
+          bgLayer.style.opacity = '0';
+          bgLayer.style.transition = 'opacity 0.8s ease';
+          adjustBg();   
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+            bgLayer.style.opacity = '1';
+            });
+          });
+        };
+        img.onerror = function() {
+        };
+        img.src = Config.BACKGROUND_IMG;
+      }
+      function adjustBg() {
+        if (window.innerWidth < 640) {
+          bgLayer.style.backgroundPosition = 'center top';
+          bgLayer.style.backgroundSize = 'cover';
+        } else {
+          bgLayer.style.backgroundPosition = 'center center';
+          bgLayer.style.backgroundSize = 'cover';
+        }
+      }
+      adjustBg();
+      window.addEventListener('resize', adjustBg);
+    })();
+  </script>
+  <script>
+    var Index = (function() {
+      var _WEB_APP_URL     = Config.DEPLOY;
+      var _GITHUB_PAGE_URL = Config.GITHUB;
+      var _rulesData     = null;   
+      var _loginUserData = null;   
+      var _alertCallback = null;   
+      async function _apiGet(action, params) {
+        params = params || {};
+        var url = new URL(_WEB_APP_URL);
+        url.searchParams.set('action', action);
+        for (var key in params) {
+          if (params.hasOwnProperty(key)) {
+            url.searchParams.set(key, params[key]);
+          }
+        }
+        var response = await fetch(url.toString(), {
+          method: 'GET',
+          redirect: 'follow'
+        });
+        if (!response.ok) throw new Error('서버 응답 오류: ' + response.status);
+        return await response.json();
+      }
+      async function _apiPost(data) {
+        var response = await fetch(_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(data),
+          redirect: 'follow'
+        });
+        if (!response.ok) throw new Error('서버 응답 오류: ' + response.status);
+        return await response.json();
+      }
+      function _showScreen(screenId) {
+        document.getElementById('skeleton-screen').classList.add('hidden');
+        var screens = document.querySelectorAll('[id^="screen-"]');
+        screens.forEach(function(s) { s.classList.add('hidden'); });
+        var target = document.getElementById(screenId);
+        if (target) target.classList.remove('hidden');
+      }
+      function _showLoading(text) {
+        text = text || '처리 중...';
+        document.getElementById('loading-text').textContent = text;
+        document.getElementById('loading-overlay').classList.remove('hidden');
+      }
+      function _hideLoading() {
+        document.getElementById('loading-overlay').classList.add('hidden');
+      }
+      function _showAlert(message, type, callback) {
+        if (!type) {
+          if (/완료|성공|발송/.test(message)) type = 'success';
+          else if (/오류|실패|올바르지|않습니다|없습니다|아닙니다|일치하지/.test(message)) type = 'error';
+          else type = 'info';
+        }
+        var config = {
+          success: { icon: '✅', title: '완료',  btnClass: 'alert-btn-success' },
+          error:   { icon: '⚠️', title: '알림',  btnClass: 'alert-btn-error' },
+          info:    { icon: 'ℹ️', title: '안내',  btnClass: 'alert-btn-info' },
+          warning: { icon: '⚡', title: '주의',  btnClass: 'alert-btn-warning' }
+        };
+        var cfg = config[type] || config.info;
+        _alertCallback = callback || null;
+        document.getElementById('modal-alert-icon').textContent = cfg.icon;
+        document.getElementById('modal-alert-title').textContent = cfg.title;
+        document.getElementById('modal-alert-message').textContent = message;
+        document.getElementById('modal-alert-btn').className =
+          'w-full font-medium py-2.5 rounded-xl transition text-sm ' + cfg.btnClass;
+        var modal = document.getElementById('modal-alert');
+        var box = document.getElementById('modal-alert-box');
+        modal.classList.remove('hidden');
+        box.classList.remove('modal-animate-out');
+        box.classList.add('modal-animate-in');
+      }
+      function _closeAlert() {
+        var modal = document.getElementById('modal-alert');
+        var box = document.getElementById('modal-alert-box');
+        box.classList.remove('modal-animate-in');
+        box.classList.add('modal-animate-out');
+        setTimeout(function() {
+          modal.classList.add('hidden');
+          if (_alertCallback) {
+            _alertCallback();
+            _alertCallback = null;
+          }
+        }, 200);
+      }
+      function _showSkeleton(text) {
+        var el = document.getElementById('skeleton-screen');
+        if (el) {
+          el.classList.remove('hidden');
+          if (text) {
+            var statusEl = document.getElementById('skeleton-status-text');
+            if (statusEl) statusEl.textContent = text;
+          }
+        }
+      }
+      function _hideSkeleton() {
+        var el = document.getElementById('skeleton-screen');
+        if (el) el.classList.add('hidden');
+      }
+      function _setupPasswordMatch(pwId, confirmId, msgId) {
+        var pwField = document.getElementById(confirmId);
+        if (!pwField) return;
+        pwField.addEventListener('input', function() {
+          var pw = document.getElementById(pwId).value;
+          var confirm = this.value;
+          var msgEl = document.getElementById(msgId);
+          if (!confirm) {
+            msgEl.classList.add('hidden');
+            return;
+          }
+          msgEl.classList.remove('hidden');
+          if (pw === confirm) {
+            msgEl.textContent = '✓ 비밀번호가 일치합니다.';
+            msgEl.className = 'text-xs mt-1 text-green-600';
+          } else {
+            msgEl.textContent = '✗ 비밀번호가 일치하지 않습니다.';
+            msgEl.className = 'text-xs mt-1 text-red-500';
+          }
+        });
+      }
+      async function _initialize() {
+        _showSkeleton('초기 설정을 불러오는 중...');
+        try {
+          var result = await _apiGet('getRules');
+          if (!result.success) {
+            throw new Error(result.message || '규칙 데이터를 가져올 수 없습니다.');
+          }
+          _rulesData = result.data;
+          var today = new Date().toISOString().split('T')[0]; 
+          if (today < _rulesData.registerDate) {
+            document.getElementById('preparing-message').textContent =
+              _rulesData.registerDate + ' 부터 서비스가 시작됩니다.';
+            _showScreen('screen-preparing');
+          } else if (today >= _rulesData.closeDate) {
+            document.getElementById('closed-message').textContent =
+              '마감일(' + _rulesData.closeDate + ')이 지났습니다. 더 이상 이용할 수 없습니다.';
+            _showScreen('screen-closed');
+          } else {
+            document.getElementById('main-title').textContent = _rulesData.title;
+            document.getElementById('sub-title').textContent = _rulesData.subtitle;
+            _showScreen('screen-login');
+          }
+        } catch (err) {
+          _hideSkeleton();
+          _showAlert('초기 설정을 불러오지 못했습니다.\n' + err.message, 'error');
+        }
+      }
+      async function _doRegister() {
+        var studentId = document.getElementById('reg-studentId').value.trim();
+        var name      = document.getElementById('reg-name').value.trim();
+        var email     = document.getElementById('reg-email').value.trim();
+        var password  = document.getElementById('reg-password').value.trim();
+        var passwordConfirm = document.getElementById('reg-password-confirm').value.trim();
+        if (!studentId || !name || !email || !password) {
+          _showAlert('모든 항목을 입력해 주세요.', 'warning');
+          return;
+        }
+        if (!passwordConfirm) {
+          _showAlert('비밀번호 확인을 입력해 주세요.', 'warning');
+          return;
+        }
+        if (password !== passwordConfirm) {
+          _showAlert('비밀번호와 비밀번호 확인이 일치하지 않습니다.\n비밀번호를 다시 확인해 주세요.', 'error');
+          return;
+        }
+        var koreanRegex = /^[가-힣]+$/;
+        if (!koreanRegex.test(name)) {
+          _showAlert('이름은 반드시 한글로 입력해 주세요.', 'error');
+          return;
+        }
+        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          _showAlert('올바른 이메일 형식으로 입력해 주세요.', 'error');
+          return;
+        }
+        _showLoading('회원가입 처리 중...');
+        try {
+          var result = await _apiPost({
+            action: 'register',
+            studentId: studentId,
+            name: name,
+            email: email,
+            password: password
+          });
+          if (result.success) {
+            document.getElementById('reg-studentId').value = '';
+            document.getElementById('reg-name').value = '';
+            document.getElementById('reg-email').value = '';
+            document.getElementById('reg-password').value = '';
+            document.getElementById('reg-password-confirm').value = '';
+            document.getElementById('reg-pw-match-msg').classList.add('hidden');
+            _showAlert(result.message, 'success', function() {
+              _showScreen('screen-login');
+            });
+          } else {
+            _showAlert(result.message, 'error');
+          }
+        } catch (err) {
+          _showAlert('회원가입 중 오류가 발생했습니다.\n' + err.message, 'error');
+        } finally {
+          _hideLoading();
+        }
+      }
+      async function _doLogin() {
+        var userId   = document.getElementById('login-id').value.trim();
+        var password = document.getElementById('login-pw').value.trim();
+        if (!userId || !password) {
+          _showAlert('아이디와 비밀번호를 입력해 주세요.', 'warning');
+          return;
+        }
+        _showLoading('로그인 중...');
+        try {
+          var result = await _apiPost({
+            action: 'login',
+            userId: userId,
+            password: password
+          });
+          if (!result.success) {
+            _showAlert(result.message, 'error');
+            return;
+          }
+          _loginUserData = result.data;
+          if (_loginUserData.userType === 'admin') {
+            sessionStorage.setItem('adminInfo', JSON.stringify(_loginUserData));
+            window.location.href = _GITHUB_PAGE_URL + '/admin.html';
+            return;
+          }
+          if (_loginUserData.notices && _loginUserData.notices.length > 0) {
+            _showNoticeModal(_loginUserData.notices);
+          } else {
+            _proceedAfterLogin();
+          }
+        } catch (err) {
+          _showAlert('로그인 중 오류가 발생했습니다.\n' + err.message, 'error');
+        } finally {
+          _hideLoading();
+        }
+      }
+      function _showNoticeModal(notices) {
+        var contentDiv = document.getElementById('modal-notice-content');
+        contentDiv.innerHTML = '';
+        notices.forEach(function(notice) {
+          var div = document.createElement('div');
+          div.className = 'notice-item';
+          div.innerHTML =
+            '<p class="notice-tag">[' + notice.type + ']</p>' +
+            '<p class="whitespace-pre-wrap text-sm text-gray-600">' + notice.content + '</p>';
+          contentDiv.appendChild(div);
+        });
+        document.getElementById('modal-notice').classList.remove('hidden');
+      }
+      function _closeNoticeAndProceed() {
+        document.getElementById('modal-notice').classList.add('hidden');
+        _proceedAfterLogin();
+      }
+      function _proceedAfterLogin() {
+        var today = new Date().toISOString().split('T')[0];
+        if (today < _rulesData.inputDate) {
+          document.getElementById('waiting-message').textContent =
+            _rulesData.inputDate + ' 부터 자료 입력이 가능합니다.';
+          _showScreen('screen-waiting');
+        } else {
+          var params = new URLSearchParams({
+            studentId: _loginUserData.studentId,
+            name:      _loginUserData.name,
+            menuAuth:  _loginUserData.menuAuth || '모든메뉴'
+          });
+          if (_loginUserData.menuAuth === '교과별메뉴') {
+            window.location.href = _GITHUB_PAGE_URL + '/class.html?' + params.toString();
+          } else {
+            window.location.href = _GITHUB_PAGE_URL + '/firstpage.html?' + params.toString();
+          }
+        }
+      }
+      async function _doFindPassword() {
+        var studentId = document.getElementById('find-studentId').value.trim();
+        var name      = document.getElementById('find-name').value.trim();
+        var email     = document.getElementById('find-email').value.trim();
+        if (!studentId || !name || !email) {
+          _showAlert('모든 항목을 입력해 주세요.', 'warning');
+          return;
+        }
+        _showLoading('비밀번호 찾는 중...');
+        try {
+          var result = await _apiPost({
+            action: 'findPassword',
+            studentId: studentId,
+            name: name,
+            email: email
+          });
+          if (result.success) {
+            _showAlert(result.message, 'success', function() {
+              _showScreen('screen-login');
+            });
+          } else {
+            _showAlert(result.message, 'error');
+          }
+        } catch (err) {
+          _showAlert('비밀번호 찾기 중 오류가 발생했습니다.\n' + err.message, 'error');
+        } finally {
+          _hideLoading();
+        }
+      }
+      async function _doChangePassword() {
+        var studentId       = document.getElementById('chpw-studentId').value.trim();
+        var name            = document.getElementById('chpw-name').value.trim();
+        var email           = document.getElementById('chpw-email').value.trim();
+        var currentPassword = document.getElementById('chpw-current').value.trim();
+        var newPassword     = document.getElementById('chpw-new').value.trim();
+        var newPasswordConfirm = document.getElementById('chpw-new-confirm').value.trim();
+        if (!studentId || !name || !email || !currentPassword || !newPassword || !newPasswordConfirm) {
+          _showAlert('모든 항목을 입력해 주세요.', 'warning');
+          return;
+        }
+        if (newPassword !== newPasswordConfirm) {
+          _showAlert('새로운 비밀번호와 재확인 비밀번호가 일치하지 않습니다.\n다시 확인해 주세요.', 'error');
+          return;
+        }
+        if (currentPassword === newPassword) {
+          _showAlert('새로운 비밀번호가 기존 비밀번호와 동일합니다.\n다른 비밀번호를 입력해 주세요.', 'warning');
+          return;
+        }
+        _showLoading('비밀번호 변경 중...');
+        try {
+          var result = await _apiPost({
+            action: 'changePassword',
+            studentId: studentId,
+            name: name,
+            email: email,
+            currentPassword: currentPassword,
+            newPassword: newPassword
+          });
+          if (result.success) {
+            _showAlert(result.message, 'success', function() {
+              _showScreen('screen-login');
+            });
+          } else {
+            _showAlert(result.message, 'error');
+          }
+        } catch (err) {
+          _showAlert('비밀번호 변경 중 오류가 발생했습니다.\n' + err.message, 'error');
+        } finally {
+          _hideLoading();
+        }
+      }
+      window.addEventListener('DOMContentLoaded', function() {
+        _setupPasswordMatch('reg-password', 'reg-password-confirm', 'reg-pw-match-msg');
+        _setupPasswordMatch('chpw-new', 'chpw-new-confirm', 'chpw-match-msg');
+        _initialize();
+      });
+      return {
+        showScreen:           _showScreen,
+        showLoading:          _showLoading,
+        hideLoading:          _hideLoading,
+        showAlert:            _showAlert,
+        closeAlert:           _closeAlert,
+        showSkeleton:         _showSkeleton,
+        hideSkeleton:         _hideSkeleton,
+        doLogin:              _doLogin,
+        doRegister:           _doRegister,
+        doFindPassword:       _doFindPassword,
+        doChangePassword:     _doChangePassword,
+        closeNoticeAndProceed: _closeNoticeAndProceed
+      };
+    })();
+  </script>
+</body>
+</html>

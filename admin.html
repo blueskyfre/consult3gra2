@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관리자 페이지</title>
+  <script src="config.js"></script>
+  <script src="navi.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0f172a;
+      background: #f5f7fb;
+      letter-spacing: -0.01em;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes skeleton-shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton-box {
+      background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      border-radius: 0.5rem;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .student-item {
+      border-radius: 10px;
+      margin: 2px 8px;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .student-item:hover { background: #eef2ff; border-color: #c7d2fe; }
+    .student-item.active {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      border-color: #4338ca;
+      box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.35);
+    }
+    .student-item.active span { color: #fff !important; }
+    .student-item.active .text-gray-400 { color: #c7d2fe !important; }
+    .area-btn {
+      border-radius: 10px;
+      margin: 4px 8px;
+      padding: 12px 14px !important;
+      border: 1px solid #e2e8f0 !important;
+      transition: all 0.15s ease;
+    }
+    .area-btn:hover { background: #eef2ff !important; border-color: #c7d2fe !important; }
+    .area-btn.active {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+      color: #fff !important;
+      border-color: #4338ca !important;
+      box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.35);
+    }
+    .site-header {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: saturate(180%) blur(12px);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+    .site-header-inner {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 0 28px;
+    }
+    .header-greeting {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+    .header-auth {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .menu-btn {
+      position: relative;
+      padding: 0 10px;
+      height: 60px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #475569;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      letter-spacing: -0.01em;
+      transition: color 0.2s ease;
+      white-space: nowrap;
+    }
+    .menu-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 8px;
+      right: 8px;
+      height: 3px;
+      background: linear-gradient(90deg, #6366f1, #4f46e5);
+      border-radius: 3px 3px 0 0;
+      transform: scaleX(0);
+      transform-origin: center;
+      transition: transform 0.25s ease;
+    }
+    .menu-btn:hover { color: #4f46e5; }
+    .menu-btn:hover::after { transform: scaleX(1); }
+    .menu-btn.active { color: #4f46e5; font-weight: 700; }
+    .menu-btn.active::after { transform: scaleX(1); }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 60px;
+    }
+    .header-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      border: 1px solid transparent;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .btn-download {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      border-color: #059669;
+      box-shadow: 0 2px 6px -1px rgba(16, 185, 129, 0.3);
+    }
+    .btn-download:hover { transform: translateY(-1px); box-shadow: 0 4px 10px -2px rgba(16, 185, 129, 0.4); }
+    .btn-logout { background: #fff; color: #64748b; border-color: #e2e8f0; }
+    .btn-logout:hover {
+      background: #fff;
+      color: #dc2626;
+      border-color: #fecaca;
+      box-shadow: 0 4px 10px -2px rgba(220, 38, 38, 0.15);
+      transform: translateY(-1px);
+    }
+    .header-divider { width: 1px; height: 22px; background: #e2e8f0; margin: 0 4px; }
+    #class-dropdown {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #1e293b;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.18s;
+    }
+    #class-dropdown:hover { background: #e2e8f0; }
+    #class-dropdown:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
+    .app-sidebar { background: #ffffff; border-right: 1px solid #e2e8f0; }
+    .sidebar-header {
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .sidebar-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #4f46e5;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .modern-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.875rem;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+    .modern-table thead tr { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); }
+    .modern-table thead th {
+      color: #fff;
+      font-weight: 600;
+      padding: 12px 14px;
+      text-align: center;
+      font-size: 0.82rem;
+      letter-spacing: -0.01em;
+      border: none;
+      white-space: nowrap;
+    }
+    .modern-table tbody td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      text-align: center;
+      color: #334155;
+      white-space: nowrap;
+    }
+    .modern-table tbody tr:nth-child(even) { background: #fafbff; }
+    .modern-table tbody tr:hover { background: #fef9c3; }
+    .modern-table tbody tr:last-child td { border-bottom: none; }
+    .univ-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .univ-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, #10b981, #059669);
+    }
+    .univ-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -6px rgba(15, 23, 42, 0.12); border-color: #c7d2fe; }
+    .univ-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px dashed #e2e8f0; }
+    .univ-rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.95rem;
+      box-shadow: 0 2px 6px -1px rgba(245, 158, 11, 0.4);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .univ-rank-badge:hover { transform: scale(1.05); }
+    .univ-name { font-size: 1.1rem; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; }
+    .univ-dept { font-size: 0.85rem; color: #64748b; margin-top: 2px; }
+    .univ-tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; letter-spacing: -0.01em; }
+    .tag-type { background: #eef2ff; color: #4338ca; }
+    .tag-kind { background: #ecfdf5; color: #047857; }
+    .tag-suneung { background: #fef3c7; color: #92400e; }
+    .tag-judge { background: #fce7f3; color: #be185d; }
+    .univ-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 16px; margin-top: 6px; }
+    .univ-field { display: flex; flex-direction: column; gap: 2px; font-size: 0.82rem; }
+    .univ-field-label { color: #94a3b8; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+    .univ-field-value { color: #1e293b; font-weight: 500; word-break: keep-all; }
+    .univ-section-divider { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px dashed #e2e8f0; font-size: 0.72rem; font-weight: 700; color: #6366f1; letter-spacing: 0.05em; text-transform: uppercase; }
+    .univ-memo { margin-top: 12px; padding: 10px 12px; background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.82rem; color: #78350f; white-space: pre-wrap; }
+    .student-info-banner { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 18px 22px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08); }
+    .student-info-name { font-size: 1.15rem; font-weight: 800; color: #1e3a8a; letter-spacing: -0.02em; }
+    .student-info-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .info-pill { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #93c5fd; border-radius: 999px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; color: #1d4ed8; }
+    .info-pill-label { color: #2563eb; font-weight: 700; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; }
+    .info-pill-value { color: #1e3a8a; }
+    .student-item-all { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd !important; font-weight: 700; color: #075985; }
+    .student-item-all.active { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important; border-color: #0369a1 !important; box-shadow: 0 4px 12px -2px rgba(14, 165, 233, 0.35); }
+    .student-item-all.active span { color: #fff !important; }
+    .gibu-copy-btn {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px;
+      font-size: 0.78rem; font-weight: 700; border-radius: 7px;
+      background: #fef9c3; color: #78350f; border: 1px solid #a16207;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); cursor: pointer;
+      transition: all 0.15s ease; white-space: nowrap;
+    }
+    .gibu-copy-btn:hover { background: #fef08a; border-color: #92400e; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 6px -1px rgba(161,98,7,0.25); transform: translateY(-1px); }
+    .gibu-save-btn {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 14px;
+      font-size: 0.78rem; font-weight: 700; border-radius: 7px;
+      background: #fef9c3; color: #78350f; border: 1px solid #a16207;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); cursor: pointer;
+      transition: all 0.15s ease; white-space: nowrap;
+    }
+    .gibu-save-btn:hover { background: #fef08a; border-color: #92400e; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 6px -1px rgba(161,98,7,0.25); transform: translateY(-1px); }
+    .gibu-save-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .gibu-write-btn {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 14px;
+      font-size: 0.78rem; font-weight: 700; border-radius: 7px;
+      background: #fef9c3; color: #78350f; border: 1px solid #a16207;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); cursor: pointer;
+      transition: all 0.15s ease; white-space: nowrap;
+    }
+    .gibu-write-btn:hover { background: #fef08a; border-color: #92400e; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 6px -1px rgba(161,98,7,0.25); transform: translateY(-1px); }
+    .gibu-area-header { display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); border-radius: 10px 10px 0 0; padding: 10px 16px; }
+    .gibu-area-title { font-size: 0.95rem; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
+    .gibu-area-bytes { font-size: 0.75rem; font-weight: 600; color: #bfdbfe; margin-left: 2px; }
+    .gibu-area-block { margin-bottom: 20px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px -2px rgba(15,23,42,0.1); border: 1px solid #bfdbfe; }
+    .gibu-area-body { background: #f0f7ff; padding: 12px; }
+    .gibu-student-block { margin-bottom: 20px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px -2px rgba(15,23,42,0.1); border: 1px solid #bfdbfe; }
+    .gibu-student-header { display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); padding: 10px 16px; }
+    .gibu-student-id { font-size: 0.82rem; font-weight: 700; color: #bfdbfe; font-family: monospace; }
+    .gibu-student-name { font-size: 1rem; font-weight: 800; color: #fff; }
+    .gibu-student-class { font-size: 0.78rem; font-weight: 600; color: #93c5fd; }
+    .gibu-student-bytes { font-size: 0.75rem; color: #bfdbfe; margin-left: auto; }
+    .gibu-student-body { background: #f0f7ff; padding: 12px; }
+    .gibu-page-banner { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 22px; margin-bottom: 18px; display: flex; align-items: center; gap: 14px; }
+    .gibu-page-banner-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #3b82f6, #2563eb); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 10px -2px rgba(37,99,235,0.4); flex-shrink: 0; }
+    .gibu-page-banner-title { font-size: 1.1rem; font-weight: 800; color: #1e3a8a; letter-spacing: -0.02em; }
+    .gibu-page-banner-sub { font-size: 0.82rem; color: #1d4ed8; font-weight: 600; margin-top: 2px; }
+    .gibu-card-toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+    .gibu-card-toolbar .gibu-label { font-size: 0.75rem; font-weight: 700; color: #1e40af; white-space: nowrap; }
+    .gibu-card-toolbar .gibu-bytes-info { font-size: 0.74rem; color: #6b7280; white-space: nowrap; }
+    .gibu-card-toolbar .gibu-spacer { flex: 1; display: inline-block; min-width: 60px; font-size: 0.74rem; color: #16a34a; font-weight: 600; text-align: right; white-space: nowrap; }
+    .gibu-preview-box { position: relative; cursor: pointer; }
+    .gibu-preview-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; word-break: break-word; }
+    .gibu-preview-text.expanded { display: block; -webkit-line-clamp: unset; overflow: visible; }
+    .gibu-ellipsis-hint { position: absolute; bottom: 0; right: 0; background: linear-gradient(to right, transparent, #f9fafb 40%); padding-left: 16px; font-size: 0.82rem; color: #94a3b8; pointer-events: none; }
+    .gibu-preview-text.expanded + .gibu-ellipsis-hint { display: none; }
+    .gibu-toggle-btn {
+      display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px;
+      font-size: 0.72rem; font-weight: 700; border-radius: 6px;
+      border: 1px solid #a16207; background: #fef9c3; color: #78350f;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); cursor: pointer;
+      white-space: nowrap; transition: all 0.15s; margin-left: auto; flex-shrink: 0;
+    }
+    .gibu-toggle-btn:hover { background: #fef08a; border-color: #92400e; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 6px -1px rgba(161,98,7,0.25); }
+    #gibu-write-modal { z-index: 200; }
+    .gibu-modal-pane { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+    .gibu-modal-pane-header { padding: 10px 14px 8px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
+    .gibu-modal-pane-body { flex: 1; overflow-y: auto; padding: 12px 14px; }
+    .gibu-modal-readonly { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 0.875rem; color: #374151; white-space: pre-wrap; word-break: break-word; line-height: 1.6; min-height: 80px; }
+    .gibu-modal-textarea { width: 100%; flex: 1; border: 1px solid #c7d2fe; border-radius: 8px; padding: 10px 12px; font-size: 0.875rem; color: #1e293b; line-height: 1.6; resize: vertical; outline: none; transition: border-color 0.15s; min-height: 120px; }
+    .gibu-modal-textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+    #unsaved-modal { z-index: 300 !important; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; gap: 14px; }
+    .empty-state-icon { width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, #eef2ff 0%, #ddd6fe 100%); display: flex; align-items: center; justify-content: center; color: #6366f1; box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.15); }
+    .empty-state-text { font-size: 0.95rem; font-weight: 600; color: #475569; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 20px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04); }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<script>
+// ============================================================
+// AdminCore 네임스페이스 (인라인)
+// 역할: 모든 모듈이 공유하는 상태(state), API 호출, 유틸 함수
+// admin_core.js 내용을 인라인으로 삽입 — 네트워크 로드 순서 문제 방지
+// ============================================================
+var AdminCore = (function () {
+  // ─── GS Web App URL (config.js 에서 주입) ───────────────────
+  var _WEB_APP_URL = (typeof Config !== 'undefined') ? Config.DEPLOY : '';
+  // ─── 글자수 제한 (바이트) ────────────────────────────────────
+  var BYTE_LIMIT = {
+    '자율활동':   1500,
+    '동아리활동': 1500,
+    '진로활동':   2100,
+    '개인별세특': 1500,
+    '행동발달':   1500
+  };
+  // ─── 공유 상태 ───────────────────────────────────────────────
+  // 모든 모듈은 AdminCore.state 를 직접 참조·변경합니다.
+  // (단, 외부에서 state 객체 자체를 교체하지 말고 프로퍼티만 변경하세요)
+  var state = {
+    adminId:          '',
+    adminName:        '',
+    adminAuth:        '',
+    adminClass:       '',
+    allClasses:       [],
+    currentClass:     '',
+    currentMenu:      '',
+    currentArea:      '',
+    currentStudentId: '',
+    studentList:      [],
+    suneungData:      null,   // 수능선택 원본 캐시 (개별/전체 전환용)
+    hasUnsavedEdit:   false,  // 미저장 편집 여부
+    isLoading:        false,  // 콘텐츠 로딩 중 여부
+    pendingDownload:  false   // 로딩 완료 후 자동 다운로드 예약
+  };
+  // ─── API 호출 (GET) ──────────────────────────────────────────
+  // GS Web App 과의 통신 창구. action 명과 params 객체를 받아 JSON 반환.
+  async function apiGet(action, params) {
+    params = params || {};
+    var url = new URL(_WEB_APP_URL);
+    url.searchParams.set('action', action);
+    for (var key in params) {
+      if (Object.prototype.hasOwnProperty.call(params, key)) {
+        url.searchParams.set(key, params[key]);
+      }
+    }
+    var res = await fetch(url.toString(), { method: 'GET', redirect: 'follow' });
+    if (!res.ok) throw new Error('서버 응답 오류: ' + res.status);
+    var text = await res.text();
+    if (!text || !text.trim()) {
+      return { success: true };
+    }
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error('응답 파싱 오류: ' + e.message + ' / 응답내용: ' + text.substring(0, 100));
+    }
+  }
+  // ─── API 호출 (POST) ─────────────────────────────────────────
+  // 파일 데이터 등 큰 payload 전송 시 사용.
+  // GAS는 CORS preflight(OPTIONS)를 지원하지 않으므로
+  // Content-Type을 text/plain으로 설정해 simple request로 전송.
+  async function apiPost(action, params) {
+    params = params || {};
+    var body = Object.assign({ action: action }, params);
+    var res = await fetch(_WEB_APP_URL, {
+      method:   'POST',
+      redirect: 'follow',
+      headers:  { 'Content-Type': 'text/plain' },
+      body:     JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('서버 응답 오류: ' + res.status);
+    var text = await res.text();
+    if (!text || !text.trim()) {
+      return { success: true };
+    }
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error('응답 파싱 오류: ' + e.message + ' / 응답내용: ' + text.substring(0, 100));
+    }
+  }
+  // ─── 유틸: 바이트 계산 ───────────────────────────────────────
+  function calcBytes(str) {
+    if (!str) return 0;
+    try { return new TextEncoder().encode(String(str)).length; }
+    catch (e) {
+      var s = String(str), b = 0;
+      for (var i = 0; i < s.length; i++) {
+        var c = s.charCodeAt(i);
+        b += c < 0x80 ? 1 : (c < 0x800 ? 2 : 3);
+      }
+      return b;
+    }
+  }
+  // ─── 유틸: HTML 이스케이프 ───────────────────────────────────
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,  '&amp;')
+      .replace(/</g,  '&lt;')
+      .replace(/>/g,  '&gt;')
+      .replace(/"/g,  '&quot;')
+      .replace(/'/g,  '&#39;');
+  }
+  // ─── 유틸: 클립보드 폴백 복사 ───────────────────────────────
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  // ─── 공개 API ────────────────────────────────────────────────
+  return {
+    state:        state,
+    BYTE_LIMIT:   BYTE_LIMIT,
+    apiGet:       apiGet,
+    apiPost:      apiPost,
+    calcBytes:    calcBytes,
+    escapeHtml:   escapeHtml,
+    fallbackCopy: fallbackCopy
+  };
+})();
+</script>
+<script src="admin_suneung.js"></script>
+<script src="admin_univer.js"></script>
+<script src="admin_repoper.js"></script>
+<script src="admin_repoarea.js"></script>
+<script src="admin_course.js"></script>
+<script>
+// ============================================================
+// Admin 퍼사드 네임스페이스 (IIFE)
+// 역할:
+//   ① HTML onclick="Admin.xxx()" 의 단일 진입점
+//   ② init, 학생 명단, 다운로드, 로그아웃, 생기부 공통 헬퍼
+//   ③ 각 메뉴 모듈(AdminSuneung 등)로 위임(delegate)
+// ============================================================
+var Admin = (function () {
+  // ─── 미저장 경고 (페이지 이탈) ──────────────────────────────
+  window.addEventListener('beforeunload', function (e) {
+    if (AdminCore.state.hasUnsavedEdit) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+  // ─── 초기화 ──────────────────────────────────────────────────
+  function _init() {
+    var raw = sessionStorage.getItem('adminInfo');
+    if (!raw) {
+      NaviComponent.showLoading('로그인 정보가 없습니다. 로그인 페이지로 이동합니다...');
+      location.href = 'index.html';
+      return;
+    }
+    var info = JSON.parse(raw);
+    AdminCore.state.adminId    = info.adminId    || '';
+    AdminCore.state.adminName  = info.adminName  || '';
+    AdminCore.state.adminAuth  = info.adminAuth  || '';
+    AdminCore.state.adminClass = info.adminClass || '';
+    AdminCore.state.allClasses = info.allClasses || [];
+    AdminCore.state.currentClass = (AdminCore.state.adminAuth === '관리자')
+                                   ? '전체' : AdminCore.state.adminClass;
+    _renderHeader();
+    _loadStudentList();
+  }
+  // ─── 헤더 렌더링 ─────────────────────────────────────────────
+  function _renderHeader() {
+    document.getElementById('admin-greeting').textContent =
+      AdminCore.state.adminName + ' 선생님 접속했습니다.';
+    if (AdminCore.state.adminAuth === '관리자') {
+      document.getElementById('auth-label').textContent = '권한 : ';
+      var wrapper = document.getElementById('class-select-wrapper');
+      wrapper.innerHTML = '';
+      var select = document.createElement('select');
+      select.id = 'class-dropdown';
+      var optAll = document.createElement('option');
+      optAll.value = '전체'; optAll.textContent = '전체';
+      select.appendChild(optAll);
+      AdminCore.state.allClasses.forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = c; opt.textContent = c + '반';
+        select.appendChild(opt);
+      });
+      select.value = AdminCore.state.currentClass;
+      select.addEventListener('change', function () {
+        AdminCore.state.currentClass = this.value;
+        _loadStudentList();
+        _refreshContent();
+      });
+      wrapper.appendChild(select);
+    } else {
+      document.getElementById('auth-label').textContent = '권한 : ';
+      document.getElementById('class-select-wrapper').innerHTML =
+        '<span style="font-size:0.78rem;font-weight:600;color:#475569;">'
+        + AdminCore.state.adminClass + '반</span>';
+    }
+  }
+  // ─── 학생 명단 로드 ──────────────────────────────────────────
+  // GS action: adminGetStudentList
+  async function _loadStudentList() {
+    _showSidebarSkeleton();
+    NaviComponent.showLoading('불러오는 중입니다...');
+    try {
+      var res = await AdminCore.apiGet('adminGetStudentList', {
+        adminId:     AdminCore.state.adminId,
+        filterClass: AdminCore.state.currentClass
+      });
+      NaviComponent.hideLoading();
+      if (res.success) {
+        AdminCore.state.studentList = res.data;
+        if (AdminCore.state.currentMenu === 'gibu_area') {
+          AdminRepoArea.renderAreaButtons();
+        } else {
+          _renderStudentList(res.data);
+        }
+      } else {
+        document.getElementById('student-list').innerHTML =
+          '<p class="text-red-400 text-xs p-3">' + res.message + '</p>';
+        NaviComponent.showAlert(res.message || '학생 명단을 불러오지 못했습니다.', null, { icon: '⚠️' });
+      }
+    } catch (err) {
+      NaviComponent.hideLoading();
+      document.getElementById('student-list').innerHTML =
+        '<p class="text-red-400 text-xs p-3">오류: ' + err.message + '</p>';
+      NaviComponent.showAlert('학생 명단 로드 중 오류가 발생했습니다.<br>' + err.message, null, { icon: '⚠️' });
+    }
+  }
+  function _showSidebarSkeleton() {
+    var html = '';
+    for (var i = 0; i < 8; i++) {
+      html += '<div class="flex items-center gap-2 px-3 py-2 border-b border-gray-100">'
+            + '<div class="skeleton-box w-10 h-3"></div>'
+            + '<div class="skeleton-box flex-1 h-3"></div>'
+            + '</div>';
+    }
+    document.getElementById('student-list').innerHTML = html;
+  }
+  function _renderStudentList(students) {
+    var ul = document.getElementById('student-list');
+    if (!students || students.length === 0) {
+      ul.innerHTML = '<p class="text-gray-400 text-sm p-3 text-center">학생 명단을 불러오는 중입니다.</p>';
+      return;
+    }
+    ul.innerHTML = '';
+    if (AdminCore.state.currentMenu === 'suneung') {
+      var liAll = document.createElement('div');
+      liAll.className = 'student-item student-item-all flex items-center gap-2 cursor-pointer';
+      liAll.dataset.id = '__ALL__';
+      liAll.innerHTML =
+        '<span class="flex items-center justify-center w-7 h-7 rounded-lg bg-sky-100 text-sky-600 shrink-0">'
+        + '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>'
+        + '</span>'
+        + '<span class="text-sm font-bold truncate">전체 학생</span>';
+      liAll.addEventListener('click', function () {
+        document.querySelectorAll('.student-item').forEach(function (el) { el.classList.remove('active'); });
+        liAll.classList.add('active');
+        AdminCore.state.currentStudentId = '';
+        AdminSuneung.render(AdminCore.state.suneungData, null);
+      });
+      ul.appendChild(liAll);
+      if (!AdminCore.state.currentStudentId) liAll.classList.add('active');
+    }
+    students.forEach(function (s) {
+      var li = document.createElement('div');
+      li.className = 'student-item flex items-center gap-2 cursor-pointer';
+      li.dataset.id = s.studentId;
+      li.innerHTML =
+        '<span class="text-xs text-gray-400 w-12 shrink-0 font-mono">' + s.studentId + '</span>'
+        + '<span class="text-sm font-semibold text-gray-800 truncate">' + s.name + '</span>';
+      li.addEventListener('click', function () {
+        document.querySelectorAll('.student-item').forEach(function (el) { el.classList.remove('active'); });
+        li.classList.add('active');
+        AdminCore.state.currentStudentId = s.studentId;
+        var menu = AdminCore.state.currentMenu;
+        if (menu === 'gibu_personal') {
+          AdminRepoPer.renderForStudent(s.studentId);
+        } else if (menu === 'univ') {
+          AdminUniver.renderForStudent(s);
+        } else if (menu === 'suneung') {
+          AdminSuneung.render(AdminCore.state.suneungData, s.studentId);
+        }
+      });
+      ul.appendChild(li);
+    });
+  }
+  // ─── 메뉴 전환 ───────────────────────────────────────────────
+  function _onMenuClick(menu) {
+    if (AdminCore.state.hasUnsavedEdit) {
+      _showUnsavedModal('페이지를 이동하면 저장하지 않은 편집 내용이 사라집니다.', function () {
+        AdminCore.state.hasUnsavedEdit = false;
+        _doMenuClick(menu);
+      });
+      return;
+    }
+    _doMenuClick(menu);
+  }
+  function _doMenuClick(menu) {
+    AdminCore.state.currentMenu      = menu;
+    AdminCore.state.currentStudentId = '';
+    document.querySelectorAll('.menu-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.getElementById('btn-' + menu).classList.add('active');
+    document.getElementById('sidebar-title').textContent =
+      menu === 'gibu_area' ? '생기부 영역'
+      : menu === 'course'  ? '교과관리'
+      : '학생 명단';
+    if (menu === 'gibu_area') {
+      AdminRepoArea.renderAreaButtons();
+      clearContent(_msgArrow('blue', '좌측에 있는 생기부 영역을 클릭하여 데이터를 조회하세요.'));
+    } else if (menu === 'gibu_personal') {
+      _renderStudentList(AdminCore.state.studentList);
+      clearContent(_msgArrow('blue', '좌측에서 학생을 선택하세요.'));
+    } else if (menu === 'suneung') {
+      AdminCore.state.currentStudentId = '';
+      _renderStudentList(AdminCore.state.studentList);
+      AdminSuneung.load();
+    } else if (menu === 'univ') {
+      _renderStudentList(AdminCore.state.studentList);
+      clearContent(_msgArrow('emerald', '좌측에서 학생을 선택하세요.'));
+    } else if (menu === 'course') {
+      AdminCourse.init();
+    }
+  }
+  function _refreshContent() {
+    var menu = AdminCore.state.currentMenu;
+    if (!menu) return;
+    if (menu === 'suneung') {
+      AdminCore.state.currentStudentId = '';
+      AdminSuneung.load();
+    } else if (menu === 'univ') {
+      AdminCore.state.currentStudentId = '';
+      clearContent(_msgArrow('emerald', '좌측에서 학생을 선택하세요.'));
+    } else if (menu === 'gibu_personal') {
+      clearContent(_msgArrow('blue', '좌측에서 학생을 선택하세요.'));
+    } else if (menu === 'gibu_area') {
+      AdminRepoArea.renderAreaButtons();
+      clearContent(_msgArrow('blue', '좌측에 있는 생기부 영역을 클릭하여 데이터를 조회하세요.'));
+    } else if (menu === 'course') {
+      AdminCourse.init();
+    }
+  }
+  // ─── 화살표 안내 메시지 공통 생성 ────────────────────────────
+  function _msgArrow(color, text) {
+    var c = color === 'emerald' ? { ring: 'bg-emerald-100', icon: 'text-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' }
+                                : { ring: 'bg-blue-100',    icon: 'text-blue-500',    text: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200' };
+    return '<div class="flex flex-col items-center justify-center h-64 gap-3">'
+         + '<div class="flex items-center justify-center w-12 h-12 rounded-full ' + c.ring + '">'
+         + '<svg class="w-6 h-6 ' + c.icon + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>'
+         + '</div>'
+         + '<p class="text-base font-semibold ' + c.text + ' ' + c.bg + ' border ' + c.border + ' rounded-xl px-5 py-3 shadow-sm">' + text + '</p>'
+         + '</div>';
+  }
+  // ─── 콘텐츠 영역 유틸 (모듈에서 Admin.xxx() 로 호출) ────────
+  function showContentSkeleton(rows) {
+    var html = '<div class="p-4 space-y-3">';
+    for (var i = 0; i < (rows || 6); i++) {
+      html += '<div class="skeleton-box h-4 ' + (i % 2 === 0 ? 'w-full' : 'w-3/4') + '"></div>';
+    }
+    html += '</div>';
+    document.getElementById('content-area').innerHTML = html;
+  }
+  function clearContent(msg) {
+    document.getElementById('content-area').innerHTML =
+      msg || '<div class="flex flex-col items-center justify-center h-64 text-gray-400">'
+           + '<p class="text-sm">상단 메뉴를 클릭하여 데이터를 조회하세요.</p></div>';
+  }
+  function showError(msg) {
+    document.getElementById('content-area').innerHTML =
+      '<div class="p-6 text-center">'
+      + '<div class="text-4xl mb-3">⚠️</div>'
+      + '<p class="text-red-600 font-medium">' + (msg || '오류가 발생했습니다.') + '</p>'
+      + '</div>';
+  }
+  // ─── 생기부 공통 헬퍼 ────────────────────────────────────────
+  function _copyGibuContent(areaKey) {
+    var srcEl = document.getElementById('gibu-original-' + areaKey);
+    if (!srcEl) return;
+    var text = srcEl.getAttribute('data-raw') || '';
+    var fb = document.getElementById('copy-feedback-' + areaKey);
+    function show() {
+      if (!fb) return;
+      fb.textContent = '복사 완료';
+      clearTimeout(fb._hideTimer);
+      fb._hideTimer = setTimeout(function () { fb.textContent = ''; }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(show, function () { AdminCore.fallbackCopy(text); show(); });
+    } else { AdminCore.fallbackCopy(text); show(); }
+  }
+  function _copyGibuEdit(areaKey) {
+    var modalTa = document.getElementById('gibu-modal-textarea');
+    var fb = document.getElementById('copy-feedback-edit-' + areaKey);
+    var text = '';
+    if (modalTa && !document.getElementById('gibu-write-modal').classList.contains('hidden')) {
+      text = modalTa.value;
+    } else {
+      var bytesEl = document.getElementById('gibu-edit-bytes-' + areaKey);
+      if (bytesEl) {
+        var card = bytesEl.closest('.bg-white');
+        if (card) {
+          var pDiv = card.querySelector('.gibu-preview-text[data-iseditor="1"]');
+          if (pDiv) text = pDiv.getAttribute('data-raw-edit') || pDiv.textContent;
+        }
+      }
+    }
+    function show() {
+      if (!fb) return;
+      fb.textContent = '복사 완료';
+      clearTimeout(fb._hideTimer);
+      fb._hideTimer = setTimeout(function () { fb.textContent = ''; }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(show, function () { AdminCore.fallbackCopy(text); show(); });
+    } else { AdminCore.fallbackCopy(text); show(); }
+  }
+  function _updateEditBytes(areaKey, limit) {
+    var ta    = document.getElementById('gibu-edit-' + areaKey);
+    var label = document.getElementById('gibu-edit-bytes-' + areaKey);
+    if (!ta || !label) return;
+    var bytes = AdminCore.calcBytes(ta.value);
+    label.textContent = '(' + bytes + '바이트 / ' + limit + '바이트)';
+    label.style.color = bytes > limit ? '#dc2626' : '#6b7280';
+    AdminCore.state.hasUnsavedEdit = true;
+  }
+  function _toggleGibuPreview(btn) {
+    var box = btn.closest('.bg-white') ? btn.closest('.bg-white').querySelector('.gibu-preview-box') : null;
+    if (!box) return;
+    _doToggleBox(box, btn);
+  }
+  function _toggleGibuPreviewBox(box) {
+    var toolbar = box.closest('.bg-white') ? box.closest('.bg-white').querySelector('.gibu-card-toolbar') : null;
+    var btn = toolbar ? toolbar.querySelector('.gibu-toggle-btn') : null;
+    _doToggleBox(box, btn);
+  }
+  function _doToggleBox(box, btn) {
+    var pDiv = box.querySelector('.gibu-preview-text');
+    var hint = box.querySelector('.gibu-ellipsis-hint');
+    if (!pDiv) return;
+    var expanded = pDiv.classList.contains('expanded');
+    if (expanded) {
+      pDiv.classList.remove('expanded');
+      if (hint) hint.style.display = '';
+      if (btn) { btn.dataset.expanded = '0'; btn.querySelector('span').textContent = '펼치기'; }
+    } else {
+      pDiv.classList.add('expanded');
+      if (hint) hint.style.display = 'none';
+      if (btn) { btn.dataset.expanded = '1'; btn.querySelector('span').textContent = '접기'; }
+    }
+  }
+  // ─── 다운로드 ─────────────────────────────────────────────────
+  var _infoToastTimer = null;
+  function _showInfoToast(msg) {
+    var existing = document.getElementById('_info-toast');
+    if (existing) existing.remove();
+    var downloadBtn = document.querySelector('.btn-download');
+    var toast = document.createElement('div');
+    toast.id = '_info-toast';
+    var styles = [
+      'position:fixed','z-index:9999',
+      'background:linear-gradient(135deg,#3b82f6,#2563eb)',
+      'color:#fff','font-size:0.88rem','font-weight:600',
+      'padding:10px 20px','border-radius:10px',
+      'box-shadow:0 8px 24px -4px rgba(37,99,235,0.4)',
+      'letter-spacing:-0.01em','white-space:nowrap',
+      'transition:opacity 0.3s ease, transform 0.3s ease','opacity:0'
+    ];
+    if (downloadBtn) {
+      var rect = downloadBtn.getBoundingClientRect();
+      styles.push('top:' + (rect.bottom + 10) + 'px');
+      styles.push('left:' + rect.right + 'px');
+      styles.push('transform:translateY(-10px) translateX(-100%)');
+    } else {
+      styles.push('top:70px'); styles.push('right:28px');
+      styles.push('transform:translateY(-10px)');
+    }
+    toast.style.cssText = styles.join(';');
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    requestAnimationFrame(function () {
+      toast.style.opacity = '1';
+      toast.style.transform = downloadBtn ? 'translateY(0) translateX(-100%)' : 'translateY(0)';
+    });
+    if (_infoToastTimer) clearTimeout(_infoToastTimer);
+    _infoToastTimer = setTimeout(function () {
+      toast.style.opacity = '0';
+      setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 320);
+    }, 3000);
+  }
+  function _openDownloadModal() {
+    var menu = AdminCore.state.currentMenu;
+    if (!menu) { NaviComponent.showAlert('먼저 상단 메뉴를 클릭하여 데이터를 조회하세요.'); return; }
+    if (AdminCore.state.isLoading) {
+      _showInfoToast('⏳ 데이터를 로딩 중입니다. 완료되면 자동으로 다운로드합니다.');
+      AdminCore.state.pendingDownload = true;
+      return;
+    }
+    var contentArea = document.getElementById('content-area');
+    var hasTable       = contentArea.querySelector('table');
+    var hasUnivCard    = contentArea.querySelector('.univ-card');
+    var hasGibuPersonal = (menu === 'gibu_personal' && !!AdminCore.state.currentStudentId && !!contentArea.querySelector('.gibu-area-block'));
+    var hasGibuArea    = (menu === 'gibu_area' && !!contentArea.querySelector('.gibu-student-block'));
+    if (!hasTable && !hasGibuPersonal && !hasGibuArea && !hasUnivCard) {
+      if (menu === 'gibu_personal')  _showInfoToast('💡 좌측에서 학생을 먼저 선택하세요.');
+      else if (menu === 'gibu_area') _showInfoToast('💡 좌측에서 영역을 먼저 선택하세요.');
+      else if (menu === 'univ')      _showInfoToast('💡 학생을 먼저 선택한 후 데이터가 화면에 출력되면 저장 버튼을 클릭하세요.');
+      else                           _showInfoToast('💡 데이터가 출력된 후 저장 버튼을 클릭하세요.');
+      return;
+    }
+    var menuNames = { suneung: '수능선택', univ: '관심대학', gibu_personal: '생기부_개인별', gibu_area: '생기부_영역별' };
+    var defaultName = menuNames[menu] || '생기부_데이터';
+    if (menu === 'gibu_area' && AdminCore.state.currentArea)
+      defaultName += '_' + AdminCore.state.currentArea;
+    if (menu === 'gibu_personal' && AdminCore.state.currentStudentId) {
+      var stuInfo = null;
+      for (var si = 0; si < AdminCore.state.studentList.length; si++) {
+        if (AdminCore.state.studentList[si].studentId === AdminCore.state.currentStudentId) { stuInfo = AdminCore.state.studentList[si]; break; }
+      }
+      defaultName += '_' + AdminCore.state.currentStudentId;
+      if (stuInfo && stuInfo.name) defaultName += '_' + stuInfo.name;
+    }
+    document.getElementById('download-filename').value = defaultName;
+    document.getElementById('download-modal').classList.remove('hidden');
+  }
+  function _closeDownloadModal() {
+    document.getElementById('download-modal').classList.add('hidden');
+  }
+  function _confirmDownload() {
+    var filename = (document.getElementById('download-filename').value.trim() || '생기부_데이터') + '.xlsx';
+    var wb = XLSX.utils.book_new();
+    var contentArea = document.getElementById('content-area');
+    var table = contentArea.querySelector('table');
+    var menu  = AdminCore.state.currentMenu;
+    if (table) {
+      var ws = XLSX.utils.table_to_sheet(table);
+      var range = XLSX.utils.decode_range(ws['!ref']);
+      var colWidths = [];
+      for (var C = range.s.c; C <= range.e.c; C++) {
+        var maxLen = 8;
+        for (var R = range.s.r; R <= range.e.r; R++) {
+          var cell = ws[XLSX.utils.encode_cell({r: R, c: C})];
+          if (cell && cell.v) { var len = String(cell.v).length; if (len > maxLen) maxLen = len; }
+        }
+        colWidths.push({ wch: Math.min(maxLen + 2, 40) });
+      }
+      ws['!cols'] = colWidths;
+      XLSX.utils.book_append_sheet(wb, ws, '데이터');
+    } else {
+      var rows = [];
+      if (menu === 'univ') {
+        var univHeaders = ['순위','대학명','전형유형','전형종류','지원학과','모집정원','수능최저','선발유형','면접유무','면접지역','면접시작일','면접종료일','실기유무','실기지역','실기시작일','실기종료일','지원성향판단','비고'];
+        rows.push(univHeaders);
+        contentArea.querySelectorAll('.univ-card').forEach(function (card) {
+          var rankRaw  = (card.querySelector('.univ-rank-badge') || {}).textContent || '';
+          var rank     = rankRaw.replace('순위', '').trim();
+          var nameSpans = card.querySelectorAll('.univ-name');
+          var name     = nameSpans[0] ? nameSpans[0].textContent.trim() : '';
+          var dept     = nameSpans[1] ? nameSpans[1].textContent.trim() : '';
+          var tagType  = (card.querySelector('.tag-type')    || {}).textContent || '';
+          var tagKind  = (card.querySelector('.tag-kind')    || {}).textContent || '';
+          var tagSuneung = ((card.querySelector('.tag-suneung') || {}).textContent || '').replace('수능최저:', '').trim();
+          var tagJudge = (card.querySelector('.tag-judge')   || {}).textContent || '';
+          var fieldMap = {};
+          card.querySelectorAll('.univ-field').forEach(function (f) {
+            var lbl = (f.querySelector('.univ-field-label') || {}).textContent || '';
+            var val = (f.querySelector('.univ-field-value') || {}).textContent || '';
+            fieldMap[lbl.trim()] = val.trim();
+          });
+          var memoEl = card.querySelector('.univ-memo');
+          var memo = memoEl ? memoEl.textContent.replace(/^💬\s*/, '').trim() : '';
+          rows.push([rank.trim(), name.trim(), tagType.trim(), tagKind.trim(), dept.trim(),
+            fieldMap['모집정원'] || '', tagSuneung, fieldMap['선발유형'] || '',
+            fieldMap['면접유무'] || '', fieldMap['면접지역'] || '', fieldMap['면접시작일'] || '', fieldMap['면접종료일'] || '',
+            fieldMap['실기유무'] || '', fieldMap['실기지역'] || '', fieldMap['실기시작일'] || '', fieldMap['실기종료일'] || '',
+            tagJudge.trim(), memo]);
+        });
+      } else if (menu === 'gibu_area') {
+        rows.push(['반', '학번', '이름', '학생이 제출한 내용', '글자수(바이트/제한)', '교사가 작성한 내용', '편집글자수(바이트/제한)']);
+        contentArea.querySelectorAll('.gibu-student-block').forEach(function (card) {
+          var clsEl  = card.querySelector('.gibu-student-class');
+          var sidEl  = card.querySelector('.gibu-student-id');
+          var nameEl = card.querySelector('.gibu-student-name');
+          var cls  = clsEl  ? clsEl.textContent.replace('반', '').trim() : '';
+          var sid  = sidEl  ? sidEl.textContent.trim() : '';
+          var name = nameEl ? nameEl.textContent.trim() : '';
+          var bytesTxt = '';
+          var byteInfoEl = card.querySelector('.gibu-bytes-info');
+          if (byteInfoEl) bytesTxt = byteInfoEl.textContent.replace(/[()]/g, '').trim();
+          var originalDiv = card.querySelector('[id^="gibu-original-"]');
+          var content = '';
+          if (originalDiv) { content = originalDiv.getAttribute('data-raw') || originalDiv.innerText.trim(); if (content === '내용 없음') content = ''; }
+          var editedContent = '';
+          var editTextarea = card.querySelector('textarea[id^="gibu-edit-"]');
+          if (editTextarea) { editedContent = editTextarea.value; }
+          else {
+            var editPreviewDiv = card.querySelector('.gibu-preview-text[data-iseditor="1"]');
+            if (editPreviewDiv) { editedContent = editPreviewDiv.getAttribute('data-raw-edit') || editPreviewDiv.innerText.trim(); if (editedContent === '편집 내용 없음') editedContent = ''; }
+          }
+          var editBytesSpan = card.querySelector('[id^="gibu-edit-bytes-"]');
+          var editBytesTxt = editBytesSpan ? editBytesSpan.textContent.replace(/[()]/g, '').trim() : '';
+          rows.push([cls, sid, name, content, bytesTxt, editedContent, editBytesTxt]);
+        });
+      } else if (menu === 'gibu_personal') {
+        var personalStudentId = AdminCore.state.currentStudentId || '';
+        var personalName = '';
+        for (var si2 = 0; si2 < AdminCore.state.studentList.length; si2++) {
+          if (AdminCore.state.studentList[si2].studentId === personalStudentId) { personalName = AdminCore.state.studentList[si2].name || ''; break; }
+        }
+        rows.push(['학번', personalStudentId]);
+        rows.push(['이름', personalName]);
+        rows.push(['영역', '글자수(바이트/제한)', '학생이 제출한 내용', '교사가 작성한 내용', '편집글자수(바이트/제한)']);
+        contentArea.querySelectorAll('.gibu-area-block').forEach(function (block) {
+          var areaTitleEl = block.querySelector('.gibu-area-title');
+          if (!areaTitleEl) return;
+          var areaName = areaTitleEl.textContent.trim();
+          var bytesTxt = '';
+          var byteInfoEl = block.querySelector('.gibu-bytes-info');
+          if (byteInfoEl) bytesTxt = byteInfoEl.textContent.replace(/[()]/g, '').trim();
+          var originalDiv = block.querySelector('[id^="gibu-original-"]');
+          var originalContent = '';
+          if (originalDiv) { originalContent = originalDiv.getAttribute('data-raw') || originalDiv.innerText.trim(); if (originalContent === '학생이 제출한 내용이 없음') originalContent = ''; }
+          var editedContent2 = '';
+          var editTextarea2 = block.querySelector('textarea[id^="gibu-edit-"]');
+          if (editTextarea2) { editedContent2 = editTextarea2.value.trim(); }
+          else {
+            var editPreviewDiv2 = block.querySelector('.gibu-preview-text[data-iseditor="1"]');
+            if (editPreviewDiv2) { editedContent2 = editPreviewDiv2.getAttribute('data-raw-edit') || editPreviewDiv2.innerText.trim(); if (editedContent2 === '편집 내용 없음') editedContent2 = ''; }
+          }
+          var editBytesSpan2 = block.querySelector('[id^="gibu-edit-bytes-"]');
+          var editBytesTxt2 = editBytesSpan2 ? editBytesSpan2.textContent.replace(/[()]/g, '').trim() : '';
+          rows.push([areaName, bytesTxt, originalContent, editedContent2, editBytesTxt2]);
+        });
+      }
+      var ws2 = XLSX.utils.aoa_to_sheet(rows);
+      var wideContentCols = menu === 'gibu_personal' ? [2, 3] : (menu === 'gibu_area' ? [3, 5] : [rows[0] ? rows[0].length - 1 : 0]);
+      var headerRow2 = (menu === 'gibu_personal') ? rows[2] : rows[0];
+      var colWidths2 = [];
+      if (headerRow2) {
+        headerRow2.forEach(function (_, i) { colWidths2.push({ wch: wideContentCols.indexOf(i) !== -1 ? 80 : 20 }); });
+      }
+      ws2['!cols'] = colWidths2;
+      var range2 = XLSX.utils.decode_range(ws2['!ref'] || 'A1');
+      var dataStartRow = (menu === 'gibu_personal') ? 3 : 1;
+      for (var R2 = dataStartRow; R2 <= range2.e.r; R2++) {
+        wideContentCols.forEach(function (wc) {
+          var cellRef = XLSX.utils.encode_cell({r: R2, c: wc});
+          if (ws2[cellRef]) { if (!ws2[cellRef].s) ws2[cellRef].s = {}; ws2[cellRef].s.alignment = { wrapText: true }; }
+        });
+      }
+      XLSX.utils.book_append_sheet(wb, ws2, '데이터');
+    }
+    NaviComponent.showLoading('저장 중입니다...');
+    setTimeout(function() {
+      try {
+        XLSX.writeFile(wb, filename);
+        NaviComponent.hideLoading();
+        _closeDownloadModal();
+        NaviComponent.showAlert('다운로드가 완료되었습니다.', null, { icon: '✅' });
+      } catch (e) {
+        NaviComponent.hideLoading();
+        NaviComponent.showAlert('다운로드 중 오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
+      }
+    }, 0);
+  }
+  // ─── 저장 성공 모달 ──────────────────────────────────────────
+  var _saveSuccessTimer = null;
+  function showSaveSuccess(msg) {
+    var modal = document.getElementById('save-success-modal');
+    var card  = document.getElementById('save-success-card');
+    var msgEl = document.getElementById('save-success-msg');
+    if (!modal || !card) return;
+    if (msgEl && msg) msgEl.textContent = msg;
+    modal.classList.remove('hidden');
+    requestAnimationFrame(function () {
+      card.classList.remove('scale-95', 'opacity-0');
+      card.classList.add('scale-100', 'opacity-100');
+    });
+    if (_saveSuccessTimer) clearTimeout(_saveSuccessTimer);
+    _saveSuccessTimer = setTimeout(_closeSaveSuccess, 1400);
+  }
+  function _closeSaveSuccess() {
+    var modal = document.getElementById('save-success-modal');
+    var card  = document.getElementById('save-success-card');
+    if (!modal || !card) return;
+    if (_saveSuccessTimer) { clearTimeout(_saveSuccessTimer); _saveSuccessTimer = null; }
+    card.classList.remove('scale-100', 'opacity-100');
+    card.classList.add('scale-95', 'opacity-0');
+    setTimeout(function () { modal.classList.add('hidden'); }, 180);
+  }
+  // ─── 미저장 경고 모달 ────────────────────────────────────────
+  var _unsavedCallback = null;
+  function showUnsavedModal(msg, onConfirm) {
+    _unsavedCallback = onConfirm || null;
+    var msgEl = document.getElementById('unsaved-modal-msg');
+    if (msgEl) msgEl.textContent = msg;
+    var modal = document.getElementById('unsaved-modal');
+    var card  = document.getElementById('unsaved-modal-card');
+    if (!modal || !card) return;
+    modal.classList.remove('hidden');
+    requestAnimationFrame(function () {
+      card.classList.remove('scale-95', 'opacity-0');
+      card.classList.add('scale-100', 'opacity-100');
+    });
+  }
+  function _confirmUnsaved() {
+    var modal = document.getElementById('unsaved-modal');
+    var card  = document.getElementById('unsaved-modal-card');
+    if (card) { card.classList.remove('scale-100', 'opacity-100'); card.classList.add('scale-95', 'opacity-0'); }
+    setTimeout(function () {
+      if (modal) modal.classList.add('hidden');
+      if (_unsavedCallback) { var cb = _unsavedCallback; _unsavedCallback = null; cb(); }
+    }, 180);
+  }
+  function _cancelUnsaved() {
+    var modal = document.getElementById('unsaved-modal');
+    var card  = document.getElementById('unsaved-modal-card');
+    if (card) { card.classList.remove('scale-100', 'opacity-100'); card.classList.add('scale-95', 'opacity-0'); }
+    setTimeout(function () { if (modal) modal.classList.add('hidden'); _unsavedCallback = null; }, 180);
+  }
+  // ─── 로그아웃 ─────────────────────────────────────────────────
+  function _logout() {
+    var gibuModal = document.getElementById('gibu-write-modal');
+    var ta = document.getElementById('gibu-modal-textarea');
+    var gibuDirty = gibuModal && !gibuModal.classList.contains('hidden') && ta;
+    if (gibuDirty || AdminCore.state.hasUnsavedEdit) {
+      showUnsavedModal('로그아웃하면 저장하지 않은 편집 내용이 사라집니다.', function () {
+        AdminCore.state.hasUnsavedEdit = false;
+        document.getElementById('logout-modal').classList.remove('hidden');
+      });
+      return;
+    }
+    document.getElementById('logout-modal').classList.remove('hidden');
+  }
+  function _confirmLogout() { sessionStorage.removeItem('adminInfo'); location.href = 'index.html'; }
+  function _cancelLogout()  { document.getElementById('logout-modal').classList.add('hidden'); }
+  // ─── 공개 API (HTML onclick 진입점) ─────────────────────────
+  return {
+    init:                _init,
+    onMenuClick:         _onMenuClick,
+    showContentSkeleton: showContentSkeleton,
+    clearContent:        clearContent,
+    showError:           showError,
+    showSaveSuccess:     showSaveSuccess,
+    showUnsavedModal:    showUnsavedModal,
+    openDownloadModal:   _openDownloadModal,
+    closeDownloadModal:  _closeDownloadModal,
+    confirmDownload:     _confirmDownload,
+    closeSaveSuccess:    _closeSaveSuccess,
+    logout:              _logout,
+    confirmLogout:       _confirmLogout,
+    cancelLogout:        _cancelLogout,
+    confirmUnsaved:      _confirmUnsaved,
+    cancelUnsaved:       _cancelUnsaved,
+    editUnivRank:        function (cell) { AdminUniver.editUnivRank(cell); },
+    copyGibuContent:     _copyGibuContent,
+    copyGibuEdit:        _copyGibuEdit,
+    updateEditBytes:     _updateEditBytes,
+    toggleGibuPreview:   _toggleGibuPreview,
+    toggleGibuPreviewBox:_toggleGibuPreviewBox,
+    openGibuWriteModal:  function (areaKey, studentId, area, limit) { AdminRepoArea.openGibuWriteModal(areaKey, studentId, area, limit); },
+    closeGibuWriteModal: function () { AdminRepoArea.closeGibuWriteModal(); },
+    updateModalBytes:    function () { AdminRepoArea.updateModalBytes(); },
+    copyModalLeft:       function () { AdminRepoArea.copyModalLeft(); },
+    copyModalRight:      function () { AdminRepoArea.copyModalRight(); },
+    saveGibuModal:       function () { AdminRepoArea.saveGibuModal(); }
+  };
+})();
+</script>
+<header class="site-header">
+  <div class="site-header-inner max-w-screen-2xl mx-auto">
+    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+      <span class="header-greeting" id="admin-greeting">로딩 중...</span>
+      <div class="header-auth">
+        <span id="auth-label"></span>
+        <span id="class-select-wrapper"></span>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <button id="btn-suneung"      class="menu-btn" onclick="Admin.onMenuClick('suneung')">수능선택</button>
+      <button id="btn-univ"         class="menu-btn" onclick="Admin.onMenuClick('univ')">관심대학</button>
+      <button id="btn-gibu_personal" class="menu-btn" onclick="Admin.onMenuClick('gibu_personal')">생기부(개인별)</button>
+      <button id="btn-gibu_area"    class="menu-btn" onclick="Admin.onMenuClick('gibu_area')">생기부(영역별)</button>
+      <button id="btn-course"       class="menu-btn" onclick="Admin.onMenuClick('course')">교과관리</button>
+    </nav>
+    <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+      <button class="header-action-btn btn-download" onclick="Admin.openDownloadModal()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        다운로드
+      </button>
+      <div class="header-divider"></div>
+      <button class="header-action-btn btn-logout" onclick="Admin.logout()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+        </svg>
+        로그아웃
+      </button>
+    </div>
+  </div>
+</header>
+<div class="flex" style="height: calc(100vh - 70px);">
+  <aside class="app-sidebar w-44 sm:w-52 md:w-60 shrink-0 flex flex-col overflow-hidden">
+    <div class="sidebar-header">
+      <span class="sidebar-title" id="sidebar-title">학생 명단</span>
+    </div>
+    <div id="student-list" class="flex-1 overflow-y-auto">
+      <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+        <div class="skeleton-box w-10 h-3"></div><div class="skeleton-box flex-1 h-3"></div>
+      </div>
+      <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+        <div class="skeleton-box w-10 h-3"></div><div class="skeleton-box flex-1 h-3"></div>
+      </div>
+      <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+        <div class="skeleton-box w-10 h-3"></div><div class="skeleton-box flex-1 h-3"></div>
+      </div>
+    </div>
+  </aside>
+  <main class="flex-1 overflow-y-auto" style="background:#f5f7fb;">
+    <div id="content-area" class="min-h-full">
+      <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+        <svg class="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p class="text-sm">상단 메뉴를 클릭하여 데이터를 조회하세요.</p>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="download-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="Admin.closeDownloadModal()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-80 overflow-hidden">
+    <div class="h-1.5 bg-gradient-to-r from-green-600 to-green-400"></div>
+    <div class="px-7 py-6">
+      <div class="flex justify-center mb-4">
+        <div class="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
+          <svg class="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+      </div>
+      <h3 class="text-center text-lg font-bold text-gray-800 mb-1">엑셀 다운로드</h3>
+      <p class="text-center text-sm text-gray-500 mb-2">현재 화면의 내용을 엑셀 파일로 저장하시겠습니까?</p>
+      <div id="download-filename-row" class="mb-5">
+        <label class="block text-xs text-gray-500 mb-1 text-center">파일 이름</label>
+        <input id="download-filename" type="text" value="생기부_데이터"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-400 text-center"/>
+        <p class="text-center text-xs text-gray-400 mt-1">.xlsx 형식으로 저장됩니다</p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="Admin.closeDownloadModal()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">취소</button>
+        <button onclick="Admin.confirmDownload()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-green-500 text-white hover:bg-green-600 transition-colors shadow-sm flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          저장
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="save-success-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="Admin.closeSaveSuccess()"></div>
+  <div id="save-success-card" class="relative bg-white rounded-2xl shadow-2xl w-80 overflow-hidden transform transition-all duration-200 scale-95 opacity-0">
+    <div class="h-1.5 bg-gradient-to-r from-emerald-600 to-emerald-400"></div>
+    <div class="px-7 py-6">
+      <div class="flex justify-center mb-4">
+        <div class="relative">
+          <div class="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center ring-4 ring-emerald-100/60">
+            <svg class="w-9 h-9 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <h3 class="text-center text-lg font-bold text-gray-800 mb-1">저장 완료</h3>
+      <p id="save-success-msg" class="text-center text-sm text-gray-500 mb-6">변경 내용이 정상적으로 저장되었습니다.</p>
+      <button onclick="Admin.closeSaveSuccess()" class="w-full py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm flex items-center justify-center gap-1.5">확인</button>
+    </div>
+  </div>
+</div>
+<div id="logout-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="Admin.cancelLogout()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-80 overflow-hidden">
+    <div class="h-1.5 bg-gradient-to-r from-blue-800 to-blue-500"></div>
+    <div class="px-7 py-6">
+      <div class="flex justify-center mb-4">
+        <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+          <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </div>
+      </div>
+      <h3 class="text-center text-lg font-bold text-gray-800 mb-1">로그아웃</h3>
+      <p class="text-center text-sm text-gray-500 mb-6">정말 로그아웃 하시겠습니까?</p>
+      <div class="flex gap-3">
+        <button onclick="Admin.cancelLogout()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">취소</button>
+        <button onclick="Admin.confirmLogout()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors shadow-sm">로그아웃</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="unsaved-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="Admin.cancelUnsaved()"></div>
+  <div id="unsaved-modal-card" class="relative bg-white rounded-2xl shadow-2xl w-80 overflow-hidden transform transition-all duration-200 scale-95 opacity-0">
+    <div class="h-1.5 bg-gradient-to-r from-amber-500 to-amber-300"></div>
+    <div class="px-7 py-6">
+      <div class="flex justify-center mb-4">
+        <div class="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center ring-4 ring-amber-100/60">
+          <svg class="w-9 h-9 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+        </div>
+      </div>
+      <h3 class="text-center text-lg font-bold text-gray-800 mb-1">저장하지 않은 내용</h3>
+      <p id="unsaved-modal-msg" class="text-center text-sm text-gray-500 mb-6">저장하지 않은 편집 내용이 사라집니다.</p>
+      <div class="flex gap-3">
+        <button onclick="Admin.cancelUnsaved()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">취소</button>
+        <button onclick="Admin.confirmUnsaved()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm">나가기</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="gibu-write-modal" class="hidden fixed inset-0 flex items-stretch justify-center" style="z-index:200;">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="Admin.closeGibuWriteModal()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+       style="width:min(96vw,1100px);height:min(92vh,820px);margin:auto;">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-200 flex-shrink-0"
+         style="background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%);">
+      <div class="flex items-center gap-2">
+        <svg width="18" height="18" fill="none" stroke="#fff" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        <span style="font-size:1rem;font-weight:800;color:#fff;letter-spacing:-0.01em;">생기부 작성</span>
+        <span id="gibu-modal-student-badge" style="margin-left:8px;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,0.22);font-size:0.85rem;font-weight:700;color:#fff;letter-spacing:-0.01em;white-space:nowrap;"></span>
+      </div>
+      <button onclick="Admin.closeGibuWriteModal()"
+        style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,0.2);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;font-weight:700;transition:background 0.15s;"
+        onmouseover="this.style.background='rgba(255,255,255,0.35)'"
+        onmouseout="this.style.background='rgba(255,255,255,0.2)'">✕</button>
+    </div>
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+      <div class="flex flex-col" style="width:50%;border-right:1px solid #e2e8f0;min-height:0;">
+        <div class="gibu-modal-pane-header" style="background:#eff6ff;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+            <div>
+              <div style="font-size:0.82rem;font-weight:800;color:#1e40af;margin-bottom:2px;">
+                📄 <span id="gibu-modal-left-label">학생 제출 내용</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:0.72rem;font-weight:600;color:#3b82f6;background:#dbeafe;padding:2px 8px;border-radius:999px;">읽기 전용</span>
+                <span id="gibu-modal-left-bytes" style="font-size:0.74rem;color:#64748b;"></span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button type="button" class="gibu-copy-btn" onclick="Admin.copyModalLeft()">
+                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                내용 복사
+              </button>
+              <span id="gibu-modal-left-copy-fb" class="gibu-spacer" style="min-width:60px;font-size:0.74rem;color:#16a34a;font-weight:600;"></span>
+            </div>
+          </div>
+        </div>
+        <div class="gibu-modal-pane-body">
+          <div id="gibu-modal-left-content" class="gibu-modal-readonly"></div>
+        </div>
+      </div>
+      <div class="flex flex-col" style="width:50%;min-height:0;">
+        <div class="gibu-modal-pane-header" style="background:#f5f3ff;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+            <div>
+              <div style="font-size:0.82rem;font-weight:800;color:#5b21b6;margin-bottom:2px;">
+                ✏️ <span id="gibu-modal-right-label">내용 편집</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:0.72rem;font-weight:600;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:999px;">편집 가능</span>
+                <span id="gibu-modal-right-bytes" style="font-size:0.74rem;color:#374151;font-weight:600;"></span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button type="button" class="gibu-copy-btn" onclick="Admin.copyModalRight()">
+                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                편집 복사
+              </button>
+              <span id="gibu-modal-right-copy-fb" class="gibu-spacer" style="min-width:60px;font-size:0.74rem;color:#16a34a;font-weight:600;"></span>
+              <button type="button" id="gibu-modal-save-btn" class="gibu-save-btn" onclick="Admin.saveGibuModal()" style="display:inline-flex;align-items:center;gap:5px;">
+                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="gibu-modal-pane-body flex flex-col">
+          <textarea id="gibu-modal-textarea"
+            class="gibu-modal-textarea flex-1"
+            style="min-height:300px;"
+            oninput="Admin.updateModalBytes()"
+            placeholder="내용을 입력하세요..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () { Admin.init(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>수능 선택과목 조사</title>
+  <script src="config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="navi.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 0.5rem;
+    }
+    .skeleton-btn  { height: 32px; width: 80px; display: inline-block; margin: 4px; }
+    .skeleton-card { height: 90px; width: 100%; margin-bottom: 10px; }
+    .skeleton-text { height: 16px; width: 60%; margin-bottom: 8px; }
+    .subject-card { transition: all 0.3s ease; }
+    .subject-card.disabled {
+      background: #f9fafb;
+      opacity: 0.55;
+    }
+    .subject-card.disabled .card-body { pointer-events: none; }
+    .subj-btn {
+      transition: all 0.15s ease;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      color: #374151;
+    }
+    .subj-btn:hover { background: #eff6ff; border-color: #93c5fd; }
+    .subj-btn.selected {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+      font-weight: 600;
+    }
+    .toggle-btn {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      font-weight: 500;
+    }
+    .toggle-btn.active-yes {
+      background: #2563eb; color: #fff;
+    }
+    .toggle-btn.active-no {
+      background: #6b7280; color: #fff;
+    }
+    .toggle-btn.inactive {
+      background: #f3f4f6; color: #9ca3af;
+      border-color: #e5e7eb;
+    }
+    .toggle-btn.inactive:hover {
+      background: #e5e7eb; color: #6b7280;
+    }
+    .summary-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 500;
+    }
+    .subject-card.disabled .summary-tag {
+      background: #f3f4f6;
+      color: #9ca3af;
+    }
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
+      50%       { box-shadow: 0 0 0 6px rgba(37,99,235,0); }
+    }
+    .highlight-card {
+      animation: pulse-border 1.5s ease-in-out 3;
+    }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 12px 28px; border-radius: 12px; color: #fff; font-weight: 600;
+      z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+    .toast-success { background: #22c55e; }
+    .toast-error   { background: #ef4444; }
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center; z-index: 9990;
+    }
+    .note-wrapper {
+      position: relative;
+    }
+    .note-wrapper textarea {
+      padding-bottom: 2.8rem;
+    }
+    .init-modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center; z-index: 10000;
+    }
+    .init-modal-card {
+      background: white; border-radius: 1rem; padding: 2rem;
+      max-width: 400px; width: 90%; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    .init-modal-title {
+      font-size: 1.25rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem;
+    }
+    .init-modal-desc {
+      font-size: 0.875rem; color: #6b7280; margin-bottom: 1.5rem;
+    }
+    .init-modal-btn {
+      padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 600;
+      transition: all 0.15s; cursor: pointer; border: none;
+    }
+    .init-modal-btn.yes {
+      background: #2563eb; color: white; margin-right: 0.5rem;
+    }
+    .init-modal-btn.yes:hover { background: #1d4ed8; }
+    .init-modal-btn.no {
+      background: #f3f4f6; color: #6b7280;
+    }
+    .init-modal-btn.no:hover { background: #e5e7eb; }
+    .misosi-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: #f8fafc;
+      border-radius: 0.375rem;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0.5rem;
+      z-index: 10;
+    }
+    .misosi-overlay.active {
+      display: flex;
+    }
+    .misosi-overlay-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #6b7280;
+    }
+    .misosi-overlay-msg {
+      font-size: 0.75rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    #subject-section.suneung-misosi #card-suneungYn-wrap {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+    #subject-section.suneung-misosi #save-bar {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+ <div id="shared-nav"></div>
+  <div id="skeleton-ui" class="max-w-5xl mx-auto px-4 py-4">
+    <div class="skeleton skeleton-text mb-4" style="width:30%; height:24px; margin:0 auto;"></div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div class="space-y-3">
+        <div class="bg-white rounded-lg p-4 shadow-sm"><div class="skeleton skeleton-card"></div></div>
+        <div class="bg-white rounded-lg p-4 shadow-sm"><div class="skeleton skeleton-card"></div></div>
+        <div class="bg-white rounded-lg p-4 shadow-sm"><div class="skeleton skeleton-card"></div></div>
+        <div class="bg-white rounded-lg p-4 shadow-sm"><div class="skeleton skeleton-card"></div></div>
+      </div>
+      <div class="space-y-3">
+        <div class="bg-white rounded-lg p-4 shadow-sm"><div class="skeleton skeleton-card"></div></div>
+        <div class="bg-white rounded-lg p-4 shadow-sm"><div class="skeleton skeleton-card"></div></div>
+        <div class="bg-white rounded-lg p-4 shadow-sm"><div class="skeleton skeleton-card"></div></div>
+        <div class="bg-white rounded-lg p-4 shadow-sm"><div class="skeleton skeleton-card"></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="main-content" class="hidden max-w-5xl mx-auto px-4 py-4">
+    <div class="flex items-center justify-between mb-3">
+      <h1 class="text-lg sm:text-xl font-bold text-gray-800">📝 수능 선택과목 조사</h1>
+      <p class="text-xs text-gray-500 hidden sm:block">수능 응시 여부를 먼저 선택한 후 각 영역 과목을 지정하세요.</p>
+    </div>
+    <div id="subject-section">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div class="space-y-3">
+          <div id="card-suneungYn-wrap" class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-blue-500 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-700">📋 수능 응시 여부</span>
+                  <span id="summary-suneungYn" class="summary-tag hidden"></span>
+                </div>
+                <div class="flex gap-1" id="card-suneungYn">
+                </div>
+              </div>
+              <div class="card-body flex gap-1.5 flex-wrap" id="card-suneungYn-buttons"></div>
+            </div>
+          </div>
+          <div id="card-language-wrap" class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-indigo-500 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center justify-between mb-2" style="position:relative;">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-700">📖 언어영역</span>
+                  <span id="summary-language" class="summary-tag hidden"></span>
+                </div>
+                <div class="flex gap-1" id="tog-language">
+                  <button onclick="SuselNS.toggleArea('language', true)"  id="tog-language-yes" class="toggle-btn inactive">응시</button>
+                  <button onclick="SuselNS.toggleArea('language', false)" id="tog-language-no"  class="toggle-btn inactive">미응시</button>
+                </div>
+                <div id="overlay-language" class="misosi-overlay">
+                  <span class="misosi-overlay-title">📖 언어영역</span>
+                  <span class="misosi-overlay-msg">🔒 수능 미응시</span>
+                </div>
+              </div>
+              <div class="card-body flex gap-1.5 flex-wrap" id="card-language"></div>
+            </div>
+          </div>
+          <div id="card-math-wrap" class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-cyan-500 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center justify-between mb-2" style="position:relative;">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-700">🔢 수리영역</span>
+                  <span id="summary-math" class="summary-tag hidden"></span>
+                </div>
+                <div class="flex gap-1">
+                  <button onclick="SuselNS.toggleArea('math', true)"  id="tog-math-yes" class="toggle-btn inactive">응시</button>
+                  <button onclick="SuselNS.toggleArea('math', false)" id="tog-math-no"  class="toggle-btn inactive">미응시</button>
+                </div>
+                <div id="overlay-math" class="misosi-overlay">
+                  <span class="misosi-overlay-title">🔢 수리영역</span>
+                  <span class="misosi-overlay-msg">🔒 수능 미응시</span>
+                </div>
+              </div>
+              <div class="card-body flex gap-1.5 flex-wrap" id="card-math"></div>
+            </div>
+          </div>
+          <div id="card-english-wrap" class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-emerald-500 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center justify-between" style="position:relative;">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-700">🌐 영어 영역</span>
+                  <span id="summary-english" class="summary-tag hidden"></span>
+                </div>
+                <div class="flex gap-1">
+                  <button onclick="SuselNS.toggleArea('english', true)"  id="tog-english-yes" class="toggle-btn inactive">응시</button>
+                  <button onclick="SuselNS.toggleArea('english', false)" id="tog-english-no"  class="toggle-btn inactive">미응시</button>
+                </div>
+                <div id="overlay-english" class="misosi-overlay">
+                  <span class="misosi-overlay-title">🌐 영어 영역</span>
+                  <span class="misosi-overlay-msg">🔒 수능 미응시</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-amber-500 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center justify-between" style="position:relative;">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-700">🏛️ 한국사</span>
+                  <span class="text-xs text-gray-400">(필수)</span>
+                </div>
+                <span class="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded-full">자동 응시</span>
+                <div id="overlay-hankuksa" class="misosi-overlay">
+                  <span class="misosi-overlay-title">🏛️ 한국사</span>
+                  <span class="misosi-overlay-msg">🔒 수능 미응시</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div id="card-inquiry1-wrap" class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-amber-500 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center justify-between mb-2" style="position:relative;">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-700">🔬 탐구선택1</span>
+                  <span id="summary-inquiry1" class="summary-tag hidden"></span>
+                </div>
+                <div class="flex gap-1">
+                  <button onclick="SuselNS.toggleArea('inquiry1', true)"  id="tog-inquiry1-yes" class="toggle-btn inactive">응시</button>
+                  <button onclick="SuselNS.toggleArea('inquiry1', false)" id="tog-inquiry1-no"  class="toggle-btn inactive">미응시</button>
+                </div>
+                <div id="overlay-inquiry1" class="misosi-overlay">
+                  <span class="misosi-overlay-title">🔬 탐구선택1</span>
+                  <span class="misosi-overlay-msg">🔒 수능 미응시</span>
+                </div>
+              </div>
+              <div class="card-body flex gap-1.5 flex-wrap" id="card-inquiry1"></div>
+            </div>
+          </div>
+          <div id="card-inquiry2-wrap" class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-orange-500 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center justify-between mb-2" style="position:relative;">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-700">🧪 탐구선택2</span>
+                  <span id="summary-inquiry2" class="summary-tag hidden"></span>
+                </div>
+                <div class="flex gap-1">
+                  <button onclick="SuselNS.toggleArea('inquiry2', true)"  id="tog-inquiry2-yes" class="toggle-btn inactive">응시</button>
+                  <button onclick="SuselNS.toggleArea('inquiry2', false)" id="tog-inquiry2-no"  class="toggle-btn inactive">미응시</button>
+                </div>
+                <div id="overlay-inquiry2" class="misosi-overlay">
+                  <span class="misosi-overlay-title">🧪 탐구선택2</span>
+                  <span class="misosi-overlay-msg">🔒 수능 미응시</span>
+                </div>
+              </div>
+              <div class="card-body flex gap-1.5 flex-wrap" id="card-inquiry2"></div>
+            </div>
+          </div>
+          <div id="card-foreign-wrap" class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-pink-500 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center justify-between mb-2" style="position:relative;">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-700">🗣️ 제2외국어/한문</span>
+                  <span id="summary-foreign" class="summary-tag hidden"></span>
+                </div>
+                <div class="flex gap-1">
+                  <button onclick="SuselNS.toggleArea('foreign', true)"  id="tog-foreign-yes" class="toggle-btn inactive">응시</button>
+                  <button onclick="SuselNS.toggleArea('foreign', false)" id="tog-foreign-no"  class="toggle-btn inactive">미응시</button>
+                </div>
+                <div id="overlay-foreign" class="misosi-overlay">
+                  <span class="misosi-overlay-title">🗣️ 제2외국어/한문</span>
+                  <span class="misosi-overlay-msg">🔒 수능 미응시</span>
+                </div>
+              </div>
+              <div class="card-body flex gap-1.5 flex-wrap" id="card-foreign"></div>
+            </div>
+          </div>
+          <div id="card-note-wrap" class="subject-card bg-white rounded-lg shadow-sm border-l-4 border-gray-400 overflow-hidden">
+            <div class="px-4 py-2.5">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-sm font-bold text-gray-700">✏️ 선택 이유 및 참고내용</span>
+              </div>
+              <div class="card-body note-wrapper">
+                <textarea id="note-textarea"
+                  class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none resize-none"
+                  rows="4" placeholder="선택 이유나 참고내용을 입력하세요..." oninput="NaviComponent.setDirty(true)"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="save-bar" class="mt-3 bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-gray-600">📊 선택 요약</span>
+            <span id="global-summary" class="text-xs text-gray-400">과목을 선택해주세요</span>
+          </div>
+          <button id="save-btn" onclick="SuselNS.doSave()"
+            class="text-sm bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold px-6 py-2 rounded-lg shadow transition disabled:opacity-40 disabled:cursor-not-allowed">
+            💾 저장하기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="init-modal" class="init-modal-bg hidden">
+    <div class="init-modal-card">
+      <div class="init-modal-title">🎯 수능 응시 여부</div>
+      <div class="init-modal-desc">수능을 응시하시겠습니까?</div>
+      <div>
+        <button onclick="SuselNS.setInitSuneung('응시')" class="init-modal-btn yes">응시</button>
+        <button onclick="SuselNS.setInitSuneung('미응시')" class="init-modal-btn no">미응시</button>
+      </div>
+    </div>
+  </div>
+  <div id="modal-overlay" class="modal-bg hidden" onclick="SuselNS.closeModal()">
+    <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6 text-center"
+         onclick="event.stopPropagation()">
+      <p id="modal-message" class="text-gray-700 text-base font-medium mb-5"></p>
+      <button onclick="SuselNS.closeModal()"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition">
+        확인
+      </button>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script>
+  var SuselNS = (function () {
+    'use strict';
+    var DEPLOY_URL  = Config.DEPLOY;
+    var GITHUB_URL  = Config.GITHUB;
+    var studentId = '';
+    var userName  = '';
+    var classNum  = '';
+    var selections = {
+      suneungYn : '',
+      language  : '',
+      math      : '',
+      english   : '',
+      inquiry1  : '',
+      inquiry2  : '',
+      foreign   : ''
+    };
+    var areaExam = {
+      language : null,
+      math     : null,
+      english  : null,
+      inquiry1 : null,
+      inquiry2 : null,
+      foreign  : null
+    };
+    var optionsData = {};
+    var cardAccent = {
+      language  : '#4f46e5',
+      math      : '#0891b2',
+      english   : '#059669',
+      inquiry1  : '#d97706',
+      inquiry2  : '#ea580c',
+      foreign   : '#db2777'
+    };
+    var showInitModal = true;
+    async function _callGetAPI(action, params) {
+      params = params || {};
+      var url = new URL(DEPLOY_URL);
+      url.searchParams.set('action', action);
+      for (var key in params) {
+        if (params.hasOwnProperty(key)) {
+          url.searchParams.set(key, params[key]);
+        }
+      }
+      var resp = await fetch(url.toString());
+      if (!resp.ok) throw new Error('서버 응답 오류: ' + resp.status);
+      return await resp.json();
+    }
+    async function _callPostAPI(action, payload) {
+      payload = payload || {};
+      payload.action = action;
+      var resp = await fetch(DEPLOY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error('서버 응답 오류: ' + resp.status);
+      return await resp.json();
+    }
+    function init() {
+      var params = new URLSearchParams(window.location.search);
+      studentId = params.get('studentId') || '';
+      userName  = params.get('name')      || '';
+      var navInfo = document.getElementById('nav-user-info');
+      if (navInfo) navInfo.textContent = userName ? (userName + ' 학생') : '';
+      _loadData();
+    }
+    async function _loadData() {
+      var studentData = null;
+      NaviComponent.showLoading('불러오는 중입니다...');
+      try {
+        var results = await Promise.allSettled([
+          _callGetAPI('suselGetOptions'),
+          _callGetAPI('suselGetStudentData', { studentId: studentId }),
+          _callGetAPI('suselGetStudentClass', { studentId: studentId })
+        ]);
+        if (results[0].status === 'fulfilled' && results[0].value.success) {
+          optionsData = results[0].value.data || {};
+        } else {
+          console.error('옵션 로드 실패:', results[0].reason || results[0].value);
+        }
+        if (results[1].status === 'fulfilled' && results[1].value.success) {
+          studentData = results[1].value.data;
+        } else {
+          console.error('학생 데이터 로드 실패:', results[1].reason || results[1].value);
+        }
+        if (results[2].status === 'fulfilled' && results[2].value.success) {
+          classNum = results[2].value.data || '';
+        } else {
+          console.error('반 정보 로드 실패:', results[2].reason || results[2].value);
+        }
+      } catch (e) {
+        console.error('데이터 로드 중 오류:', e);
+      }
+      NaviComponent.hideLoading();
+      _renderAll(studentData);
+    }
+    function _renderAll(existingData) {
+      _renderSuneungYnButtons();
+      _renderOptionButtons('card-language', 'language', optionsData.language || []);
+      _renderOptionButtons('card-math',     'math',     optionsData.math     || []);
+      _renderOptionButtons('card-inquiry1', 'inquiry1', optionsData.inquiry1 || []);
+      _renderOptionButtons('card-inquiry2', 'inquiry2', optionsData.inquiry2 || []);
+      _renderOptionButtons('card-foreign',  'foreign',  optionsData.foreign  || []);
+      if (existingData) {
+        if (existingData.classNum) classNum = existingData.classNum;
+        if (existingData.suneungYn) {
+          selections.suneungYn = existingData.suneungYn;
+          showInitModal = false; 
+          _highlightSuneungBtn(existingData.suneungYn);
+          _updateSubjectSection();
+        }
+        var areaKeys = ['language','math','english','inquiry1','inquiry2','foreign'];
+        areaKeys.forEach(function (k) {
+          if (existingData[k]) {
+            if (existingData[k] === '미응시') {
+              selections[k] = '미응시';
+              areaExam[k] = false;
+              _applyAreaToggle(k, false);
+              _highlightSubjBtn(k, '');
+              _updateSummaryTag(k, '미응시');
+            } else {
+              selections[k] = existingData[k];
+              areaExam[k] = true;
+              _applyAreaToggle(k, true);
+              _highlightSubjBtn(k, existingData[k]);
+              _updateSummaryTag(k, existingData[k]);
+            }
+          }
+        });
+        if (existingData.note) {
+          document.getElementById('note-textarea').value = existingData.note;
+        }
+      }
+      document.getElementById('skeleton-ui').classList.add('hidden');
+      document.getElementById('main-content').classList.remove('hidden');
+      var initModal = document.getElementById('init-modal');
+      if (!existingData || !existingData.suneungYn) {
+        initModal.classList.remove('hidden');
+      } else {
+        initModal.classList.add('hidden');
+      }
+      _updateGlobalSummary();
+    }
+    function _renderSuneungYnButtons() {
+      var container = document.getElementById('card-suneungYn');
+      if (!container) return;
+      container.innerHTML = '';
+      ['응시', '미응시'].forEach(function(label) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = label;
+        btn.id = 'suneung-btn-' + (label === '응시' ? 'yes' : 'no');
+        btn.className = 'toggle-btn inactive';
+        btn.style.fontSize = '0.8rem';
+        btn.style.padding = '0.3rem 0.9rem';
+        btn.addEventListener('click', function() {
+          selections.suneungYn = label;
+          _highlightSuneungBtn(label);
+          _updateSubjectSection();
+          _updateGlobalSummary();
+          NaviComponent.setDirty(true);
+        });
+        container.appendChild(btn);
+      });
+    }
+    function _highlightSuneungBtn(val) {
+      var yesBtn = document.getElementById('suneung-btn-yes');
+      var noBtn  = document.getElementById('suneung-btn-no');
+      if (!yesBtn || !noBtn) return;
+      if (val === '응시') {
+        yesBtn.className = 'toggle-btn active-yes';
+        yesBtn.style.fontSize = '0.8rem'; yesBtn.style.padding = '0.3rem 0.9rem';
+        noBtn.className  = 'toggle-btn inactive';
+        noBtn.style.fontSize = '0.8rem'; noBtn.style.padding = '0.3rem 0.9rem';
+        var keys = ['language','math','english','inquiry1','inquiry2','foreign'];
+        keys.forEach(function (k) {
+          areaExam[k] = null;
+          selections[k] = '';
+          _highlightSubjBtn(k, '');
+          _updateSummaryTag(k, '');
+          var yBtn = document.getElementById('tog-' + k + '-yes');
+          var nBtn = document.getElementById('tog-' + k + '-no');
+          if (yBtn) yBtn.className = 'toggle-btn inactive';
+          if (nBtn) nBtn.className = 'toggle-btn inactive';
+          var wrap = document.getElementById('card-' + k + '-wrap');
+          if (wrap) {
+            wrap.classList.remove('disabled');
+            var body = wrap.querySelector('.card-body');
+            if (body) body.classList.remove('hidden');
+          }
+        });
+        _updateGlobalSummary();
+      } else if (val === '미응시') {
+        yesBtn.className = 'toggle-btn inactive';
+        yesBtn.style.fontSize = '0.8rem'; yesBtn.style.padding = '0.3rem 0.9rem';
+        noBtn.className  = 'toggle-btn active-no';
+        noBtn.style.fontSize = '0.8rem'; noBtn.style.padding = '0.3rem 0.9rem';
+      } else {
+        yesBtn.className = 'toggle-btn inactive';
+        yesBtn.style.fontSize = '0.8rem'; yesBtn.style.padding = '0.3rem 0.9rem';
+        noBtn.className  = 'toggle-btn inactive';
+        noBtn.style.fontSize = '0.8rem'; noBtn.style.padding = '0.3rem 0.9rem';
+      }
+    }
+    function _renderOptionButtons(containerId, key, items) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      items.forEach(function (label) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = label;
+        btn.className = 'subj-btn';
+        btn.dataset.key   = key;
+        btn.dataset.value = label;
+        btn.addEventListener('click', function () {
+          _onSubjClick(key, label);
+            NaviComponent.setDirty(true);
+        });
+        container.appendChild(btn);
+      });
+    }
+    function setInitSuneung(val) {
+      selections.suneungYn = val;
+      _highlightSuneungBtn(val);
+      _updateSubjectSection();
+      _updateGlobalSummary();
+      document.getElementById('init-modal').classList.add('hidden');
+      showInitModal = false;
+      if (val === '미응시') {
+        doSave();
+      }
+    }
+    function toggleArea(key, isYes) {
+      areaExam[key] = isYes;
+        _applyAreaToggle(key, isYes);
+        NaviComponent.setDirty(true);
+      if (!isYes) {
+        selections[key] = '미응시';
+        _highlightSubjBtn(key, '');
+        _updateSummaryTag(key, '미응시');
+      } else {
+        if (key === 'english') {
+          selections[key] = '응시';
+          _updateSummaryTag(key, '응시');
+        } else {
+          selections[key] = '';
+          _highlightSubjBtn(key, '');
+          _updateSummaryTag(key, '');
+        }
+      }
+      _updateGlobalSummary();
+    }
+    function _applyAreaToggle(key, isYes) {
+      var wrapId = 'card-' + key + '-wrap';
+      var wrap = document.getElementById(wrapId);
+      var yesBtn = document.getElementById('tog-' + key + '-yes');
+      var noBtn  = document.getElementById('tog-' + key + '-no');
+      var bodyEl = wrap ? wrap.querySelector('.card-body') : null;
+      if (isYes === true) {
+        if (wrap) wrap.classList.remove('disabled');
+        if (yesBtn) { yesBtn.className = 'toggle-btn active-yes'; }
+        if (noBtn)  { noBtn.className  = 'toggle-btn inactive'; }
+        if (bodyEl) bodyEl.classList.remove('hidden');
+      } else if (isYes === false) {
+        if (wrap) wrap.classList.add('disabled');
+        if (yesBtn) { yesBtn.className = 'toggle-btn inactive'; }
+        if (noBtn)  { noBtn.className  = 'toggle-btn active-no'; }
+        if (bodyEl) bodyEl.classList.add('hidden');
+      } else {
+        if (wrap) wrap.classList.remove('disabled');
+        if (yesBtn) { yesBtn.className = 'toggle-btn inactive'; }
+        if (noBtn)  { noBtn.className  = 'toggle-btn inactive'; }
+        if (bodyEl) bodyEl.classList.remove('hidden');
+      }
+    }
+    function _onSubjClick(key, value) {
+      if (areaExam[key] === false) return; 
+      if (selections[key] === value) {
+        selections[key] = '';
+        _highlightSubjBtn(key, '');
+        _updateSummaryTag(key, '');
+        if (areaExam[key] === true) {
+          areaExam[key] = null;
+          _applyAreaToggle(key, null);
+        }
+      } else {
+        selections[key] = value;
+        _highlightSubjBtn(key, value);
+        _updateSummaryTag(key, value);
+        if (areaExam[key] === null) {
+          areaExam[key] = true;
+          _applyAreaToggle(key, true);
+        }
+      }
+      _updateGlobalSummary();
+    }
+    function _highlightSubjBtn(key, selectedValue) {
+      var container = document.getElementById('card-' + key);
+      if (!container) return;
+      var btns = container.querySelectorAll('.subj-btn');
+      btns.forEach(function (btn) {
+        if (btn.dataset.value === selectedValue) {
+          btn.classList.add('selected');
+        } else {
+          btn.classList.remove('selected');
+        }
+      });
+    }
+    function _updateSummaryTag(key, value) {
+      var el = document.getElementById('summary-' + key);
+      if (!el) return;
+      if (value) {
+        el.textContent = value;
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+    function _updateGlobalSummary() {
+      var el = document.getElementById('global-summary');
+      if (!el) return;
+      var parts = [];
+      var labels = { language:'국어', math:'수학', english:'영어', inquiry1:'탐구1', inquiry2:'탐구2', foreign:'제2외' };
+      var keys = ['language','math','english','inquiry1','inquiry2','foreign'];
+      keys.forEach(function(k) {
+        if (areaExam[k] === true && selections[k]) {
+          parts.push(labels[k] + ': ' + selections[k]);
+        } else if (areaExam[k] === false) {
+          parts.push(labels[k] + ': 미응시');
+        }
+      });
+      el.textContent = parts.length > 0 ? parts.join('  |  ') : '과목을 선  해  세요';
+    }
+    function _updateSubjectSection() {
+      var section = document.getElementById('subject-section');
+      if (!section) return;
+      var overlayIds = ['overlay-language','overlay-math','overlay-english','overlay-hankuksa','overlay-inquiry1','overlay-inquiry2','overlay-foreign'];
+      var dimCardIds = ['card-language-wrap','card-math-wrap','card-english-wrap','card-inquiry1-wrap','card-inquiry2-wrap','card-foreign-wrap','card-note-wrap'];
+      var hankuksaCard = document.querySelector('.subject-card.border-l-4.border-amber-500:not([id])') ||
+                         (function() {
+                           var cards = document.querySelectorAll('.subject-card');
+                           for (var i = 0; i < cards.length; i++) {
+                             if (!cards[i].id) return cards[i];
+                           }
+                           return null;
+                         })();
+      if (selections.suneungYn === '미응시') {
+        section.style.opacity = '';
+        section.style.pointerEvents = '';
+        section.classList.add('suneung-misosi');
+        dimCardIds.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) { el.style.opacity = '0.6'; }
+        });
+        if (hankuksaCard) hankuksaCard.style.opacity = '0.6';
+        overlayIds.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.classList.add('active');
+        });
+        var keys = ['language','math','english','inquiry1','inquiry2','foreign'];
+        keys.forEach(function (k) {
+          selections[k] = '미응시';
+          areaExam[k] = false;
+          _highlightSubjBtn(k, '');
+          _updateSummaryTag(k, '미응시');
+          var yBtn = document.getElementById('tog-' + k + '-yes');
+          var nBtn = document.getElementById('tog-' + k + '-no');
+          if (yBtn) yBtn.className = 'toggle-btn inactive';
+          if (nBtn) nBtn.className = 'toggle-btn active-no';
+          var wrap = document.getElementById('card-' + k + '-wrap');
+          if (wrap) {
+            wrap.classList.add('disabled');
+            var body = wrap.querySelector('.card-body');
+            if (body) body.classList.add('hidden');
+          }
+        });
+        _updateGlobalSummary();
+      } else if (selections.suneungYn === '응시') {
+        section.style.opacity = '';
+        section.style.pointerEvents = '';
+        section.classList.remove('suneung-misosi');
+        dimCardIds.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) { el.style.opacity = ''; }
+        });
+        if (hankuksaCard) hankuksaCard.style.opacity = '';
+        overlayIds.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.classList.remove('active');
+        });
+        var keys = ['language','math','english','inquiry1','inquiry2','foreign'];
+        keys.forEach(function (k) {
+          var wrap = document.getElementById('card-' + k + '-wrap');
+          if (wrap) {
+            wrap.classList.remove('disabled');
+            var body = wrap.querySelector('.card-body');
+            if (body) body.classList.remove('hidden');
+          }
+        });
+      } else {
+        section.style.opacity = '0.4';
+        section.style.pointerEvents = '';
+        section.classList.remove('suneung-misosi');
+        overlayIds.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.classList.remove('active');
+        });
+      }
+    }
+    async function doSave() {
+      if (!selections.suneungYn) {
+        _showToast('수능 응시 여부를 선택해주세요.', 'error');
+        return;
+      }
+      if (selections.suneungYn === '응시') {
+        if (!selections.language) { _showToast('언어영역을 선택해주세요.', 'error'); return; }
+        if (!selections.math)     { _showToast('수리영역을 선택해주세요.', 'error'); return; }
+        if (areaExam.english  === null) { _showToast('영어 응시 여부를 선택해주세요.', 'error'); return; }
+        if (areaExam.inquiry1 === null) { _showToast('탐구선택1 응시 여부를 선택해주세요.', 'error'); return; }
+        if (areaExam.inquiry2 === null) { _showToast('탐구선택2 응시 여부를 선택해주세요.', 'error'); return; }
+        if (areaExam.foreign  === null) { _showToast('제2외국어 응시 여부를 선택해주세요.', 'error'); return; }
+        if (areaExam.inquiry1 === true  && !selections.inquiry1) { _showToast('탐구선택1 과목을 선택해주세요.', 'error'); return; }
+        if (areaExam.inquiry2 === true  && !selections.inquiry2) { _showToast('탐구선택2 과목을 선택해주세요.', 'error'); return; }
+        if (areaExam.foreign  === true  && !selections.foreign)  { _showToast('제2외국어를 선택해주세요.', 'error'); return; }
+      }
+      var payload = {
+        classNum  : classNum,
+        studentId : studentId,
+        name      : userName,
+        suneungYn : selections.suneungYn,
+        language  : selections.suneungYn === '응시' ? selections.language  : '',
+        math      : selections.suneungYn === '응시' ? selections.math      : '',
+        english   : (function(){
+          if (selections.suneungYn !== '응시') return '';
+          if (areaExam.english === true) return '응시';
+          if (areaExam.english === false) return '미응시';
+          return '';
+        })(),
+        inquiry1  : selections.suneungYn === '응시' ? selections.inquiry1  : '',
+        inquiry2  : selections.suneungYn === '응시' ? selections.inquiry2  : '',
+        foreign   : selections.suneungYn === '응시' ? selections.foreign   : '',
+        note      : selections.suneungYn === '응시' ? (document.getElementById('note-textarea').value || '') : ''
+      };
+      var saveBtn = document.getElementById('save-btn');
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ 저장 중...'; }
+      NaviComponent.showLoading('저장 중입니다...');
+      try {
+        var result = await _callPostAPI('suselSaveSelections', payload);
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 저장하기'; }
+        if (result && result.success) {
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 저장하기'; }
+          NaviComponent.hideLoading();
+          NaviComponent.setDirty(false);
+          NaviComponent.showAlert(result.message, null, { autoClose: 3000 });
+        } else {
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 저장하기'; }
+          NaviComponent.hideLoading();
+          _showToast('저장에 실패했습니다: ' + (result.message || ''), 'error');
+        }
+      } catch (e) {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 저장하기'; }
+        NaviComponent.hideLoading();
+        _showToast('❌ 오류: ' + e.message, 'error');
+      }
+    }
+    function navigateTo(page) {
+      var params = new URLSearchParams({ studentId: studentId, name: userName });
+      switch (page) {
+        case 'schedule':
+          window.location.href = GITHUB_URL + '/firstpage.html?' + params.toString();
+          break;
+        case 'suneung':
+          break;
+        case 'university':
+          window.location.href = GITHUB_URL + '/univer.html?' + params.toString();
+          break;
+        case 'record':
+          window.location.href = GITHUB_URL + '/record.html?' + params.toString();
+          break;
+      }
+    }
+    function goHome() {
+      var params = new URLSearchParams({ studentId: studentId, name: userName });
+      window.location.href = GITHUB_URL + '/firstpage.html?' + params.toString();
+    }
+    function doLogout() {
+      window.location.href = GITHUB_URL;
+    }
+    function showModal(msg) {
+      document.getElementById('modal-message').textContent = msg;
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
+    }
+    function _showToast(msg, type) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success') + ' show';
+      setTimeout(function () { toast.classList.remove('show'); }, 3000);
+    }
+    return {
+      init        : init,
+      doSave      : doSave,
+      toggleArea  : toggleArea,
+      setInitSuneung : setInitSuneung,
+      navigateTo  : navigateTo,
+      goHome      : goHome,
+      doLogout    : doLogout,
+      showModal   : showModal,
+      closeModal  : closeModal
+    };
+  })();
+    document.addEventListener('DOMContentLoaded', function() {
+    var urlParams = new URLSearchParams(window.location.search);
+    NaviComponent.init({
+      activePage: 'suneung',
+      userName:   urlParams.get('name')      || '',
+      studentId:  urlParams.get('studentId') || '',
+      onLogout: function() { SuselNS.doLogout(); }
+    });
+    SuselNS.init();
+  });
+  </script>
+</body>
+</html>

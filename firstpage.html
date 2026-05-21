@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026학년도 주요 일정</title>
+  <script src="config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="navi.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite linear;
+      border-radius: 0.375rem;
+    }
+    .skeleton-text  { height: 1rem;   margin-bottom: 0.5rem; }
+    .skeleton-title { height: 1.5rem; width: 60%; margin-bottom: 1rem; }
+    .skeleton-row   { height: 2.5rem; margin-bottom: 0.5rem; }
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,0.7);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f0f4ff;
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .filter-tab {
+      padding: 5px 14px;
+      border-radius: 7px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+      white-space: nowrap;
+    }
+    .filter-tab.active {
+      background: #fff;
+      color: #2563eb;
+      box-shadow: 0 1px 4px rgba(37,99,235,0.13);
+    }
+    .filter-tab:hover:not(.active) {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+    .th-blue {
+      background: #dbeafe;
+      color: #1e40af;
+      font-weight: 700;
+      text-align: center;
+      padding: 11px 14px;
+      white-space: nowrap;
+      font-size: 0.82rem;
+      letter-spacing: 0.01em;
+    }
+    .sort-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      user-select: none;
+      border: none;
+      background: transparent;
+      color: #1e40af;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0;
+    }
+    .sort-btn .sort-icon { font-size: 0.7rem; opacity: 0.6; }
+    .badge-official {
+      display: inline-flex; align-items: center;
+      background: #dcfce7; color: #15803d;
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 0.72rem; font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-personal {
+      display: inline-flex; align-items: center;
+      background: #ffedd5; color: #c2410c;
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 0.72rem; font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-tbd {
+      display: inline-flex; align-items: center;
+      background: #ede9fe; color: #7c3aed;
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 0.72rem; font-weight: 700;
+      white-space: nowrap;
+    }
+    tbody tr { transition: background 0.12s; }
+    tbody tr:hover { background: #eff6ff !important; }
+    .row-past td {
+      color: #9ca3af !important;
+      text-decoration: line-through;
+      text-decoration-color: #1d4ed8;
+      text-decoration-color: rgba(29, 78, 216, 0.6);
+    }
+    .schedule-card {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      transition: box-shadow 0.15s;
+    }
+    .schedule-card:hover { box-shadow: 0 4px 14px rgba(37,99,235,0.10); }
+    .schedule-card.card-past { opacity: 0.55; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp 0.25s ease both; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="shared-nav"></div>
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="flex space-x-2 mb-3">
+      <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+      <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style="animation-delay:0.1s;"></div>
+      <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style="animation-delay:0.3s;"></div>
+    </div>
+    <p class="text-sm text-gray-600">처리 중...</p>
+  </div>
+  <div id="modal-alert" class="modal-overlay hidden">
+    <div class="bg-white rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full text-center">
+      <p id="modal-message" class="text-gray-800 text-base mb-5"></p>
+      <button onclick="Firstpage.closeModal()"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-8 rounded-lg transition text-sm">
+        확인
+      </button>
+    </div>
+  </div>
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <div class="mb-6">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-800">📅 2026학년도 주요 일정</h1>
+      <p id="welcome-text" class="text-sm text-gray-500 mt-1"></p>
+    </div>
+    <section id="upcoming-section" class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        🔔 <span>다가오는 일정</span>
+      </h2>
+      <div id="upcoming-skeleton" class="bg-white rounded-xl shadow-md border border-orange-200 p-5">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text w-full"></div>
+        <div class="skeleton skeleton-text w-4/5"></div>
+        <div class="skeleton skeleton-text w-3/5 mt-3"></div>
+        <div class="skeleton skeleton-text w-full"></div>
+      </div>
+      <div id="upcoming-box" class="hidden"></div>
+      <div id="upcoming-empty" class="hidden bg-white rounded-xl shadow-md border border-gray-200 p-5 text-center text-gray-400">
+        현재 다가오는 일정이 없습니다.
+      </div>
+    </section>
+    <section id="all-schedule-section">
+      <div class="flex flex-wrap items-center gap-3 mb-3">
+        <h2 class="text-lg font-semibold text-gray-700 flex items-center gap-2">
+          📋 <span>전체 일정</span>
+        </h2>
+      </div>
+      <div id="table-skeleton" class="bg-white rounded-xl shadow-md p-5 space-y-2">
+        <div class="skeleton skeleton-row w-full"></div>
+        <div class="skeleton skeleton-row w-full"></div>
+        <div class="skeleton skeleton-row w-full"></div>
+        <div class="skeleton skeleton-row w-full"></div>
+        <div class="skeleton skeleton-row w-full"></div>
+        <div class="skeleton skeleton-row w-full"></div>
+      </div>
+      <div id="schedule-table-wrap" class="hidden">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="th-blue" style="min-width:190px">
+                    <div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">
+                      <span>일정</span>
+                      <div class="filter-bar" id="filter-schedule" style="padding:2px 4px; gap:2px;">
+                        <button class="filter-tab active" data-val="all"      onclick="Firstpage.setScheduleFilter('all')"      style="padding:2px 9px; font-size:0.70rem; line-height:1.4;">전체</button>
+                        <button class="filter-tab"        data-val="upcoming" onclick="Firstpage.setScheduleFilter('upcoming')" style="padding:2px 9px; font-size:0.70rem; line-height:1.4;">예정</button>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="th-blue" style="min-width:140px">
+                    <button class="sort-btn" id="sort-start-btn" onclick="Firstpage.toggleSort('start')">
+                      시작날짜 <span class="sort-icon" id="sort-start-icon">▲</span>
+                    </button>
+                  </th>
+                  <th class="th-blue" style="min-width:140px">
+                    <button class="sort-btn" id="sort-end-btn" onclick="Firstpage.toggleSort('end')">
+                      마감날짜 <span class="sort-icon" id="sort-end-icon">▲</span>
+                    </button>
+                  </th>
+                  <th class="th-blue" style="min-width:160px">내용</th>
+                  <th class="th-blue" style="min-width:170px">
+                    <div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">
+                      <span>비고</span>
+                      <div class="filter-bar" id="filter-remark" style="padding:2px 4px; gap:2px;">
+                        <button class="filter-tab active" data-val="all"      onclick="Firstpage.setRemarkFilter('all')"      style="padding:2px 9px; font-size:0.70rem; line-height:1.4;">전체</button>
+                        <button class="filter-tab"        data-val="personal" onclick="Firstpage.setRemarkFilter('personal')" style="padding:2px 9px; font-size:0.70rem; line-height:1.4;">개인</button>
+                      </div>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="schedule-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="schedule-cards-wrap" class="hidden space-y-3"></div>
+      <div id="table-empty" class="hidden bg-white rounded-xl shadow-md p-5 text-center text-gray-400">
+        등록된 일정이 없습니다.
+      </div>
+    </section>
+  </main>
+  <script>
+    var Firstpage = (function() {
+      var _API_BASE        = Config.DEPLOY;
+      var _GITHUB_PAGE_URL = Config.GITHUB;
+      var _urlParams = new URLSearchParams(window.location.search);
+      var _studentId = _urlParams.get('studentId') || '';
+      var _userName  = _urlParams.get('name') || '';
+      var _allSchedules   = [];          
+      var _scheduleFilter = 'all';       
+      var _remarkFilter   = 'all';       
+      var _sortStart      = 'asc';       
+      var _sortEnd        = 'asc';       
+      var _lastSortKey    = null;        
+      function _formatDateStr(dateObj) {
+        var y = dateObj.getFullYear();
+        var m = String(dateObj.getMonth()+1).padStart(2,'0');
+        var d = String(dateObj.getDate()).padStart(2,'0');
+        return y+'-'+m+'-'+d;
+      }
+      function _parseDate(str) {
+        if (!str) return null;
+        var parts = str.split('-');
+        if (parts.length < 3) return null;
+        return new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+      }
+      function _formatDisplay(dateStr) {
+        if (!dateStr) return null; 
+        var d = _parseDate(dateStr);
+        if (!d || isNaN(d.getTime())) return null;
+        var dayNames = ['일','월','화','수','목','금','토'];
+        var y = d.getFullYear();
+        var m = String(d.getMonth()+1).padStart(2,'0');
+        var day = String(d.getDate()).padStart(2,'0');
+        return y+'.'+m+'.'+day+'.('+ dayNames[d.getDay()]+')';
+      }
+      function _dateCell(dateStr) {
+        var display = _formatDisplay(dateStr);
+        if (display === null) {
+          return '<span class="badge-tbd">미정</span>';
+        }
+        return display;
+      }
+      function _escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+      }
+      function _remarkBadge(source) {
+        if (source === 'personal') {
+          return '<span class="badge-personal">개인</span>';
+        }
+        return '<span class="badge-official">공용</span>';
+      }
+      function _defaultSort(list) {
+        var withEnd   = list.filter(function(i){ return !!i.endDate; });
+        var startOnly = list.filter(function(i){ return !i.endDate && !!i.startDate; });
+        var noDate    = list.filter(function(i){ return !i.endDate && !i.startDate; });
+        withEnd.sort(function(a,b){ return a.endDate.localeCompare(b.endDate); });
+        startOnly.sort(function(a,b){ return a.startDate.localeCompare(b.startDate); });
+        noDate.sort(function(a,b){ return a.schedule.localeCompare(b.schedule); });
+        return withEnd.concat(startOnly).concat(noDate);
+      }
+      function _applySortKey(list, key, dir) {
+        var sorted = list.slice();
+        sorted.sort(function(a, b) {
+          var da = key === 'start' ? (a.startDate||'') : (a.endDate||'');
+          var db = key === 'start' ? (b.startDate||'') : (b.endDate||'');
+          if (!da && !db) return 0;
+          if (!da) return 1;
+          if (!db) return -1;
+          if (dir === 'asc') return da.localeCompare(db);
+          return db.localeCompare(da);
+        });
+        return sorted;
+      }
+      function _applyAndRender() {
+        var today = new Date(); today.setHours(0,0,0,0);
+        var todayStr = _formatDateStr(today);
+        var filtered = _allSchedules.filter(function(item) {
+          if (_scheduleFilter === 'upcoming') {
+            return item.endDate && item.endDate >= todayStr;
+          }
+          return true;
+        });
+        if (_remarkFilter === 'personal') {
+          filtered = filtered.filter(function(item){ return item.source === 'personal'; });
+        }
+        var sorted;
+        if (_lastSortKey === 'start') {
+          sorted = _applySortKey(filtered, 'start', _sortStart);
+        } else if (_lastSortKey === 'end') {
+          sorted = _applySortKey(filtered, 'end', _sortEnd);
+        } else {
+          sorted = _defaultSort(filtered);
+        }
+        _renderTable(sorted, todayStr);
+        _renderCards(sorted, todayStr);
+      }
+      function _renderTable(list, todayStr) {
+        var tbody = document.getElementById('schedule-tbody');
+        if (!tbody) return;
+        if (list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">조건에 맞는 일정이 없습니다.</td></tr>';
+          return;
+        }
+        var html = '';
+        list.forEach(function(item, idx) {
+          var isPast = item.endDate && item.endDate < todayStr;
+          var rowClass = isPast ? 'row-past' : '';
+          var bgClass  = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60';
+          var remarkHtml = '';
+          if (item.remark) {
+            remarkHtml = '<span class="text-gray-500 text-xs mr-1">' + _escapeHtml(item.remark) + '</span>';
+          }
+          remarkHtml += _remarkBadge(item.source);
+          html += '<tr class="border-t border-gray-100 ' + bgClass + ' ' + rowClass + ' fade-in">';
+          html += '  <td class="px-4 py-3 font-medium whitespace-nowrap">' + _escapeHtml(item.schedule) + '</td>';
+          html += '  <td class="px-4 py-3 text-center whitespace-nowrap" style="color:#111827;">' + _dateCell(item.startDate) + '</td>';
+          html += '  <td class="px-4 py-3 text-center whitespace-nowrap" style="color:#111827;">' + _dateCell(item.endDate) + '</td>';
+          html += '  <td class="px-4 py-3" style="color:#111827;">' + _escapeHtml(item.content) + '</td>';
+          html += '  <td class="px-4 py-3 text-center"><div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:4px;">' + remarkHtml + '</div></td>';
+          html += '</tr>';
+        });
+        tbody.innerHTML = html;
+      }
+      function _renderCards(list, todayStr) {
+        var wrap = document.getElementById('schedule-cards-wrap');
+        if (!wrap) return;
+        if (list.length === 0) {
+          wrap.innerHTML = '<div class="text-center py-8 text-gray-400">조건에 맞는 일정이 없습니다.</div>';
+          return;
+        }
+        var html = '';
+        list.forEach(function(item) {
+          var isPast    = item.endDate && item.endDate < todayStr;
+          var cardClass = isPast ? 'schedule-card card-past' : 'schedule-card';
+          var titleCls  = isPast ? 'line-through text-gray-400' : 'text-gray-800';
+          var remarkHtml = '';
+          if (item.remark) {
+            remarkHtml = '<span class="text-xs text-gray-400 mr-1">' + _escapeHtml(item.remark) + '</span>';
+          }
+          remarkHtml += _remarkBadge(item.source);
+          html += '<div class="' + cardClass + ' fade-in">';
+          html += '  <div class="flex items-start justify-between gap-2 mb-2">';
+          html += '    <h3 class="font-bold text-sm ' + titleCls + '">' + _escapeHtml(item.schedule) + '</h3>';
+          html += '    <div class="flex-shrink-0">' + _remarkBadge(item.source) + '</div>';
+          html += '  </div>';
+          html += '  <div class="grid grid-cols-2 gap-1 text-xs text-gray-500 mb-2">';
+          html += '    <div>📅 시작: <span class="font-medium">' + _dateCell(item.startDate) + '</span></div>';
+          html += '    <div>🏁 마감: <span class="font-medium">' + _dateCell(item.endDate) + '</span></div>';
+          html += '  </div>';
+          if (item.content) {
+            html += '  <p class="text-xs text-gray-600 mt-1">📝 ' + _escapeHtml(item.content) + '</p>';
+          }
+          if (item.remark) {
+            html += '  <p class="text-xs text-gray-400 mt-1">💡 ' + _escapeHtml(item.remark) + '</p>';
+          }
+          html += '</div>';
+        });
+        wrap.innerHTML = html;
+      }
+      function _normalizeUnivDate(str) {
+        if (!str) return '';
+        var nums = str.match(/\d+/g);
+        if (!nums || nums.length < 3) return '';
+        var y = nums[0].length === 4 ? nums[0] : (nums[1] && nums[1].length === 4 ? nums[1] : '');
+        if (!y) return '';
+        var idx = nums.indexOf(y);
+        var m = String(nums[idx+1]||'').padStart(2,'0');
+        var d = String(nums[idx+2]||'').padStart(2,'0');
+        if (!m||!d) return '';
+        return y+'-'+m+'-'+d;
+      }
+      async function _callAPI(action, params) {
+        params = params || {};
+        var url = new URL(_API_BASE);
+        url.searchParams.set('action', action);
+        for (var key in params) {
+          if (params.hasOwnProperty(key)) url.searchParams.set(key, params[key]);
+        }
+        var resp = await fetch(url.toString());
+        if (!resp.ok) throw new Error('서버 응답 오류: ' + resp.status);
+        return await resp.json();
+      }
+      async function _loadSchedules() {
+        try {
+          var result = await _callAPI('getSchedule');
+          if (!result.success) {
+            _showModal(result.message || '일정 데이터를 불러올 수 없습니다.');
+            _hideAllSkeletons();
+            return;
+          }
+          var schedules = (result.data || []).map(function(item) {
+            item.source = 'official';
+            return item;
+          });
+          try {
+            var univResult = await _callAPI('univGetStudentData', {
+              studentId: _studentId, name: _userName
+            });
+            if (univResult && univResult.success && univResult.data && univResult.data.data) {
+              var univRows = univResult.data.data.rows || [];
+              univRows.forEach(function(row) {
+                if (row.interview === '유') {
+                  schedules.push({
+                    schedule : '면접 응시',
+                    startDate: _normalizeUnivDate(row.interviewStart),
+                    endDate  : _normalizeUnivDate(row.interviewEnd),
+                    content  : (row.univ||'')+' '+(row.dept||'')+' 면접을 '+(row.interviewRegion||'')+'에서 실시',
+                    remark   : '',
+                    source   : 'personal'
+                  });
+                }
+                if (row.practical === '유') {
+                  schedules.push({
+                    schedule : '실기 응시',
+                    startDate: _normalizeUnivDate(row.practicalStart),
+                    endDate  : _normalizeUnivDate(row.practicalEnd),
+                    content  : (row.univ||'')+' '+(row.dept||'')+' 실기를 '+(row.practicalRegion||'')+'에서 실시',
+                    remark   : '',
+                    source   : 'personal'
+                  });
+                }
+              });
+            }
+          } catch(e) { console.error('관심대학 로드 오류:', e); }
+          _allSchedules = schedules;
+          _renderUpcoming(schedules);
+          _showTableWrap();
+          _applyAndRender();
+        } catch(e) {
+          console.error('일정 로드 오류:', e);
+          _showModal('일정 데이터를 불러오는 중 오류가 발생했습니다.');
+          _hideAllSkeletons();
+        }
+      }
+      function _showTableWrap() {
+        var skeletonEl  = document.getElementById('table-skeleton');
+        var tableWrapEl = document.getElementById('schedule-table-wrap');
+        var cardsWrapEl = document.getElementById('schedule-cards-wrap');
+        skeletonEl.classList.add('hidden');
+        tableWrapEl.classList.remove('hidden');
+        tableWrapEl.classList.add('hidden', 'sm:block');
+        cardsWrapEl.classList.remove('hidden');
+        cardsWrapEl.classList.add('block', 'sm:hidden');
+      }
+      function _renderUpcoming(schedules) {
+        var skeletonEl = document.getElementById('upcoming-skeleton');
+        var boxEl      = document.getElementById('upcoming-box');
+        var emptyEl    = document.getElementById('upcoming-empty');
+        var today = new Date(); today.setHours(0,0,0,0);
+        var todayStr = _formatDateStr(today);
+        var futureSchedules = schedules.filter(function(s){
+          return s.endDate && s.endDate >= todayStr;
+        });
+        if (futureSchedules.length === 0) {
+          skeletonEl.classList.add('hidden');
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+        futureSchedules.sort(function(a,b){ return a.endDate.localeCompare(b.endDate); });
+        var nearestEnd   = futureSchedules[0].endDate;
+        var nearestItems = futureSchedules.filter(function(s){ return s.endDate === nearestEnd; });
+        var html = '<div class="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl shadow-md border border-orange-200 divide-y divide-orange-100">';
+        nearestItems.forEach(function(item) {
+          var startObj = _parseDate(item.startDate);
+          var endObj   = _parseDate(item.endDate);
+          var diffStart = startObj ? Math.ceil((startObj.getTime()-today.getTime())/(1000*60*60*24)) : null;
+          var isOngoing = startObj && endObj && (today >= startObj && today <= endObj);
+          var dDayText  = '';
+          if (isOngoing) dDayText = '진행 중';
+          else if (diffStart === 0) dDayText = 'D-Day';
+          else if (diffStart > 0) dDayText = 'D-'+diffStart;
+          var dColor = isOngoing ? 'bg-green-500'
+                     : (diffStart !== null && diffStart <= 3) ? 'bg-red-500'
+                     : (diffStart !== null && diffStart <= 7) ? 'bg-orange-500' : 'bg-blue-500';
+          html += '<div class="p-4 sm:p-5">';
+          html += '  <div class="flex items-start justify-between gap-3">';
+          html += '    <div class="flex-1 min-w-0">';
+          html += '      <div class="flex items-center gap-2 mb-1 flex-wrap">';
+          if (dDayText) html += '        <span class="'+dColor+' text-white text-xs font-bold px-2 py-0.5 rounded-full">'+dDayText+'</span>';
+          html += '        <h3 class="font-bold text-gray-800 text-sm sm:text-base">'+_escapeHtml(item.schedule)+'</h3>';
+          html += '        '+_remarkBadge(item.source);
+          html += '      </div>';
+          html += '      <p class="text-xs sm:text-sm text-gray-500 mb-1">📅 '+_dateCell(item.startDate)+' ~ '+_dateCell(item.endDate)+'</p>';
+          if (item.content) html += '      <p class="text-sm text-gray-700 mt-1">📝 '+_escapeHtml(item.content)+'</p>';
+          if (item.remark)  html += '      <p class="text-xs text-gray-400 mt-1">💡 '+_escapeHtml(item.remark)+'</p>';
+          html += '    </div>';
+          html += '  </div>';
+          html += '</div>';
+        });
+        html += '</div>';
+        boxEl.innerHTML = html;
+        skeletonEl.classList.add('hidden');
+        boxEl.classList.remove('hidden');
+      }
+      function _hideAllSkeletons() {
+        document.getElementById('upcoming-skeleton').classList.add('hidden');
+        document.getElementById('table-skeleton').classList.add('hidden');
+        document.getElementById('upcoming-empty').classList.remove('hidden');
+        document.getElementById('table-empty').classList.remove('hidden');
+      }
+      function _navigateTo(page) {
+        var params = new URLSearchParams({ studentId: _studentId, name: _userName });
+        switch (page) {
+          case 'suneung':
+            window.location.href = _GITHUB_PAGE_URL + 'susel.html?' + params.toString(); break;
+          case 'university':
+            _showModal('응시희망대학 페이지는 준비 중입니다.'); break;
+          case 'record':
+            window.location.href = _GITHUB_PAGE_URL + '/record.html?' + params.toString(); break;
+        }
+      }
+      function _doLogout() { window.location.href = _GITHUB_PAGE_URL + '/index.html'; }
+      function _showModal(msg) {
+        document.getElementById('modal-message').textContent = msg;
+        document.getElementById('modal-alert').classList.remove('hidden');
+      }
+      function _closeModal() { document.getElementById('modal-alert').classList.add('hidden'); }
+      function _setScheduleFilter(val) {
+        _scheduleFilter = val;
+        document.querySelectorAll('#filter-schedule .filter-tab').forEach(function(btn){
+          btn.classList.toggle('active', btn.dataset.val === val);
+        });
+        _applyAndRender();
+      }
+      function _setRemarkFilter(val) {
+        _remarkFilter = val;
+        document.querySelectorAll('#filter-remark .filter-tab').forEach(function(btn){
+          btn.classList.toggle('active', btn.dataset.val === val);
+        });
+        _applyAndRender();
+      }
+      function _toggleSort(key) {
+        if (key === 'start') {
+          _sortStart = (_lastSortKey === 'start' && _sortStart === 'asc') ? 'desc' : 'asc';
+          _lastSortKey = 'start';
+          document.getElementById('sort-start-icon').textContent = _sortStart === 'asc' ? '▲' : '▼';
+          document.getElementById('sort-end-icon').textContent = '▲'; 
+        } else {
+          _sortEnd = (_lastSortKey === 'end' && _sortEnd === 'asc') ? 'desc' : 'asc';
+          _lastSortKey = 'end';
+          document.getElementById('sort-end-icon').textContent = _sortEnd === 'asc' ? '▲' : '▼';
+          document.getElementById('sort-start-icon').textContent = '▲'; 
+        }
+        _applyAndRender();
+      }
+      document.addEventListener('DOMContentLoaded', function() {
+        NaviComponent.init({
+          activePage: 'schedule',
+          userName: _userName,
+          studentId: _studentId,
+          onLogout: function(){ Firstpage.doLogout(); }
+        });
+        document.getElementById('welcome-text').textContent =
+          _userName ? _userName + ' 학생, 환영합니다!' : '';
+        _loadSchedules();
+      });
+      return {
+        navigateTo:        _navigateTo,
+        doLogout:          _doLogout,
+        showModal:         _showModal,
+        closeModal:        _closeModal,
+        setScheduleFilter: _setScheduleFilter,
+        setRemarkFilter:   _setRemarkFilter,
+        toggleSort:        _toggleSort
+      };
+    })();
+  </script>
+</body>
+</html>

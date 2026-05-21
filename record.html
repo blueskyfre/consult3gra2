@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>생기부 기초자료 작성</title>
+  <script src="config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="navi.js"></script>
+  <style>
+    * { box-sizing: border-box; } body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite linear;
+      border-radius: 0.375rem;
+    }
+    .skeleton-text  { height: 1rem;   margin-bottom: 0.5rem; }
+    .skeleton-title { height: 1.5rem; width: 60%; margin-bottom: 1rem; }
+    .skeleton-row   { height: 2.5rem; margin-bottom: 0.5rem; }
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    #modal-alert {
+      z-index: 9000;
+    }
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,0.85);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid #e9d5ff;
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .content-textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="shared-nav"></div>
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="spinner mb-4"></div>
+    <p id="loading-message" class="text-sm font-medium text-purple-700">저장 중입니다...</p>
+    <p class="text-xs text-gray-400 mt-1">잠시만 기다려 주세요</p>
+  </div>
+  <div id="modal-alert" class="modal-overlay hidden">
+    <div class="bg-white rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full text-center">
+      <p id="modal-message" class="text-gray-800 text-base mb-5"></p>
+      <button onclick="Record.closeModal()"
+        class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-8 rounded-lg transition text-sm">
+        확인
+      </button>
+    </div>
+  </div>
+  <div id="activity-modal" class="modal-overlay hidden">
+    <div class="bg-white rounded-xl shadow-xl p-5 mx-4 max-w-lg w-full max-h-screen overflow-y-auto">
+      <h3 id="activity-modal-title" class="text-base font-bold text-gray-800 mb-1"></h3>
+      <p id="activity-modal-date" class="text-xs text-gray-400 mb-4"></p>
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">참여 여부</label>
+        <div class="flex gap-3">
+          <button id="btn-participated-yes"
+            onclick="Record.setParticipated(true)"
+            class="flex-1 py-2 rounded-lg border-2 border-gray-200 text-sm font-medium transition">참여</button>
+          <button id="btn-participated-no"
+            onclick="Record.setParticipated(false)"
+            class="flex-1 py-2 rounded-lg border-2 border-gray-200 text-sm font-medium transition">불참</button>
+        </div>
+      </div>
+      <div id="section-no-warning" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-sm text-red-600 font-medium">⚠️ 불참으로 저장하면 이 행사의 작성 내용이 삭제됩니다.</p>
+        <p class="text-xs text-red-400 mt-1">저장을 클릭하면 기존 내용이 삭제되고 불참으로 처리됩니다.</p>
+      </div>
+      <div id="section-area" class="mb-4 hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">생기부 영역 배치</label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="area-buttons">
+        </div>
+      </div>
+      <div id="section-competency" class="mb-4 hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">중점역량</label>
+        <div class="flex gap-2 flex-wrap" id="competency-buttons">
+        </div>
+      </div>
+      <div id="section-activity-desc" class="mb-4 hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">행사 내용</label>
+        <div id="activity-desc-box"
+          class="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-600 bg-gray-50 leading-relaxed whitespace-pre-wrap"></div>
+      </div>
+      <div id="section-content" class="mb-5 hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">활동 내용 입력</label>
+        <textarea id="activity-content-input"
+          class="content-textarea w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          oninput="NaviComponent.setDirty(true)"
+          placeholder="이 행사에서 수행한 활동을 입력하세요..."></textarea>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="Record.closeActivityModal()"
+          class="flex-1 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition">취소</button>
+        <button id="btn-save-activity"
+          onclick="Record.saveActivity()"
+          class="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition hidden">저장</button>
+      </div>
+    </div>
+  </div>
+  <div id="personal-activity-modal" class="modal-overlay hidden">
+    <div class="bg-white rounded-xl shadow-xl p-5 mx-4 max-w-lg w-full max-h-screen overflow-y-auto">
+      <h3 id="personal-modal-title" class="text-base font-bold text-gray-800 mb-1"></h3>
+      <p id="personal-modal-area-label" class="text-xs text-gray-400 mb-4"></p>
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">참여 여부</label>
+        <div class="flex gap-3">
+          <button id="personal-btn-yes"
+            onclick="Record.personalSetParticipated(true)"
+            class="flex-1 py-2 rounded-lg border-2 border-gray-200 text-sm font-medium transition">참여</button>
+          <button id="personal-btn-no"
+            onclick="Record.personalSetParticipated(false)"
+            class="flex-1 py-2 rounded-lg border-2 border-gray-200 text-sm font-medium transition">불참</button>
+        </div>
+      </div>
+      <div id="personal-section-no-warning" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-sm text-red-600 font-medium">⚠️ 불참(삭제)으로 저장하면 개인 추가 활동 내용이 삭제됩니다.</p>
+        <p class="text-xs text-red-400 mt-1">저장을 클릭하면 기존 내용이 삭제됩니다.</p>
+      </div>
+      <div id="personal-section-name" class="mb-4 hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">활동명</label>
+        <input id="personal-activity-name" type="text" placeholder="활동명을 입력하세요"
+          class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          oninput="NaviComponent.setDirty(true)">
+      </div>
+      <div id="personal-section-dates" class="mb-4 hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">활동 수행 기간</label>
+        <div class="flex flex-wrap gap-4">
+          <div>
+            <label class="block text-xs text-gray-500 font-semibold mb-1">활동 시작일</label>
+            <div class="flex items-center gap-1">
+              <input id="personal-start-year"  type="number" placeholder="년" min="2000" max="2099" value="2026"
+                class="w-16 border border-gray-300 rounded-lg p-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
+                oninput="NaviComponent.setDirty(true)">
+              <span class="text-xs text-gray-400">년</span>
+              <input id="personal-start-month" type="number" placeholder="월" min="1" max="12"
+                class="w-12 border border-gray-300 rounded-lg p-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
+                oninput="NaviComponent.setDirty(true)">
+              <span class="text-xs text-gray-400">월</span>
+              <input id="personal-start-day"   type="number" placeholder="일" min="1" max="31"
+                class="w-12 border border-gray-300 rounded-lg p-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
+                oninput="NaviComponent.setDirty(true)">
+              <span class="text-xs text-gray-400">일</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 font-semibold mb-1">활동 종료일</label>
+            <div class="flex items-center gap-1">
+              <input id="personal-end-year"  type="number" placeholder="년" min="2000" max="2099" value="2026"
+                class="w-16 border border-gray-300 rounded-lg p-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
+                oninput="NaviComponent.setDirty(true)">
+              <span class="text-xs text-gray-400">년</span>
+              <input id="personal-end-month" type="number" placeholder="월" min="1" max="12"
+                class="w-12 border border-gray-300 rounded-lg p-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
+                oninput="NaviComponent.setDirty(true)">
+              <span class="text-xs text-gray-400">월</span>
+              <input id="personal-end-day"   type="number" placeholder="일" min="1" max="31"
+                class="w-12 border border-gray-300 rounded-lg p-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-purple-400"
+                oninput="NaviComponent.setDirty(true)">
+              <span class="text-xs text-gray-400">일</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="personal-section-competency" class="mb-4 hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">중점역량</label>
+        <div class="flex gap-2 flex-wrap" id="personal-competency-buttons">
+        </div>
+      </div>
+      <div id="personal-section-content" class="mb-5 hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">활동 내용 입력</label>
+        <textarea id="personal-content-input"
+          class="content-textarea w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          oninput="NaviComponent.setDirty(true)"
+          placeholder="개인적으로 수행한 활동 내용을 입력하세요..."></textarea>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="Record.closePersonalModal()"
+          class="flex-1 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition">취소</button>
+        <button id="personal-btn-save"
+          onclick="Record.savePersonalActivity()"
+          class="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition hidden">저장</button>
+      </div>
+    </div>
+  </div>
+  <div id="view-modal" class="modal-overlay hidden">
+    <div class="bg-white rounded-xl shadow-xl mx-4 flex flex-col"
+         style="max-height:95vh; width:min(95vw, 960px);">
+      <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-200 flex-shrink-0">
+        <h3 id="view-modal-title" class="text-base font-bold text-gray-800"></h3>
+        <div class="flex items-center gap-2">
+          <span id="view-byte-info" class="text-sm font-semibold text-gray-500 mr-1"></span>
+          <button onclick="Record.closeViewModal()"
+            class="py-1.5 px-4 rounded-lg border border-gray-300 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 transition">닫기</button>
+          <button id="view-modal-save-btn" onclick="Record.saveViewModal()"
+            class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition">
+            저장
+          </button>
+        </div>
+      </div>
+      <div id="view-modal-body" class="overflow-y-auto flex-1 px-5 py-4 space-y-5"></div>
+    </div>
+  </div>
+  <div id="extra-delete-modal" class="modal-overlay hidden">
+    <div class="bg-white rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full text-center">
+      <p class="text-gray-800 text-base mb-5">개인 추가활동 내용을 삭제하겠습니까?</p>
+      <div class="flex gap-3">
+        <button onclick="Record.cancelDeleteExtra()"
+          class="flex-1 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition">취소</button>
+        <button onclick="Record.confirmDeleteExtra()"
+          class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition">삭제</button>
+      </div>
+    </div>
+  </div>
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <div class="mb-5">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-800">📝 생기부 기초자료 작성</h1>
+      <p id="competency-count-text" class="text-sm text-gray-500 mt-1"></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+      <div class="flex overflow-x-auto border-b border-gray-200 bg-gray-50 scrollbar-hide" id="tab-buttons">
+      </div>
+    </div>
+    <div id="panel-events" class="hidden">
+      <div id="events-skeleton" class="bg-white rounded-xl shadow-md p-5 space-y-2">
+        <div class="skeleton skeleton-row w-full"></div>
+        <div class="skeleton skeleton-row w-full"></div>
+        <div class="skeleton skeleton-row w-full"></div>
+        <div class="skeleton skeleton-row w-full"></div>
+      </div>
+      <div id="events-list" class="hidden space-y-5"></div>
+      <div id="events-empty" class="hidden bg-white rounded-xl shadow-md p-8 text-center text-gray-400">
+        등록된 공식 행사가 없습니다.
+      </div>
+    </div>
+    <div id="panel-area" class="hidden">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <h2 id="area-title" class="text-lg font-bold text-gray-800"></h2>
+        <button onclick="Record.openViewModal()"
+          class="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-sm font-medium px-4 py-1.5 rounded-lg transition">
+          ✏️ 전체 내용 편집
+        </button>
+        <div id="byte-display" class="ml-auto text-sm font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700"></div>
+      </div>
+      <div id="done-content-box"
+        class="bg-white border border-gray-200 rounded-xl p-4 text-sm leading-relaxed mb-4 min-h-[56px] shadow-sm overflow-hidden"
+        style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">
+      </div>
+      <div class="mb-5">
+        <h3 class="text-sm font-bold text-blue-700 mb-2 flex items-center gap-2">
+          <span class="inline-block w-3 h-3 rounded-full bg-blue-400"></span>
+          이 영역에 배치된 행사
+        </h3>
+        <div id="area-events-list" class="space-y-2"></div>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold text-green-700 mb-2 flex items-center gap-2">
+          <span class="inline-block w-3 h-3 rounded-full bg-green-300"></span>
+          공식 행사 목록에서 추가
+          <span class="text-xs font-normal text-green-500">(미입력 행사만 표시)</span>
+        </h3>
+       <div id="area-all-events-list" class="space-y-2"></div>
+      </div>
+    </div>
+  </main>
+  <script>
+    var Record = (function () {
+      var _API_BASE        = Config.DEPLOY;
+      var _GITHUB_PAGE_URL = Config.GITHUB;
+      var _TABS         = ['행사목록', '자율활동', '동아리활동', '진로활동', '개인별세특', '행동발달'];
+      var _AREAS        = ['자율활동', '동아리활동', '진로활동', '개인별세특', '행동발달'];
+      var _COMPETENCIES = ['교과역량', '진로역량', '공동체역량'];
+      var _BYTE_LIMIT   = {
+        '자율활동': 1500, '동아리활동': 1500, '진로활동': 2100,
+        '개인별세특': 1500, '행동발달': 1500
+      };
+      var _urlParams  = new URLSearchParams(window.location.search);
+      var _studentId  = _urlParams.get('studentId') || '';
+      var _userName   = _urlParams.get('name')      || '';
+      var _currentTab         = '행사목록';
+      var _officialActivities = [];
+      var _inProgressData     = [];
+      var _doneData           = [];
+      var _modalActivity     = null;
+      var _modalParticipated = null;
+      var _modalArea         = '';
+      var _modalCompetency   = '';
+      var _viewArea          = '';
+      async function _callAPI(action, params) {
+        params = params || {};
+        var url = new URL(_API_BASE);
+        url.searchParams.set('action', action);
+        for (var key in params) {
+          if (params.hasOwnProperty(key)) url.searchParams.set(key, String(params[key]));
+        }
+        var resp = await fetch(url.toString());
+        if (!resp.ok) throw new Error('서버 응답 오류: ' + resp.status);
+        return await resp.json();
+      }
+      function _calcBytes(str) {
+        if (!str) return 0;
+        var count = 0;
+        for (var i = 0; i < str.length; i++) {
+          var code = str.charCodeAt(i);
+          count += (code >= 0xAC00 && code <= 0xD7A3) ? 3 : 1;
+        }
+        return count;
+      }
+      function _formatDisplay(dateStr) {
+        if (!dateStr) return '-';
+        var normalized = dateStr.replace(/\./g, '-').replace(/-$/, '');
+        var parts = normalized.split('-');
+        if (parts.length < 3) return dateStr;
+        var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        var dayNames = ['일','월','화','수','목','금','토'];
+        return (d.getMonth()+1) + '/' + d.getDate() + '(' + dayNames[d.getDay()] + ')';
+      }
+      function _escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+      }
+      function _dateToSortKey(dateStr) {
+        if (!dateStr || dateStr.trim() === '' || dateStr === '-') return Infinity;
+        return parseInt(dateStr.replace(/[.\-]/g, ''), 10) || Infinity;
+      }
+      function _showLoading(msg) {
+        document.getElementById('loading-message').textContent = msg || '저장 중입니다...';
+        document.getElementById('loading-overlay').classList.remove('hidden');
+      }
+      function _hideLoading() {
+        document.getElementById('loading-overlay').classList.add('hidden');
+      }
+      function _showModal(msg) {
+        document.getElementById('modal-message').textContent = msg;
+        document.getElementById('modal-alert').classList.remove('hidden');
+      }
+      function _closeModal() {
+        document.getElementById('modal-alert').classList.add('hidden');
+      }
+      function _renderTabs() {
+        var container = document.getElementById('tab-buttons');
+        var html = '';
+        _TABS.forEach(function(tab) {
+          var isActive = (tab === _currentTab);
+          var style = isActive
+            ? 'bg-white text-purple-700 border-b-2 border-purple-600 font-bold'
+            : 'text-gray-500 hover:text-gray-700 hover:bg-white';
+          html += '<button onclick="Record.switchTab(\'' + tab + '\')"'
+                + ' class="flex-shrink-0 px-4 py-3 text-sm font-medium transition ' + style + '">'
+                + _escapeHtml(tab) + '</button>';
+        });
+        container.innerHTML = html;
+      }
+      function _switchTab(tab) {
+        _currentTab = tab;
+        _renderTabs();
+        document.getElementById('panel-events').classList.add('hidden');
+        document.getElementById('panel-area').classList.add('hidden');
+        if (tab === '행사목록') {
+          document.getElementById('panel-events').classList.remove('hidden');
+          _renderEventsList();
+        } else {
+          document.getElementById('panel-area').classList.remove('hidden');
+          _renderAreaPanel(tab);
+        }
+      }
+      function _renderEventsList() {
+        var skeleton = document.getElementById('events-skeleton');
+        var list     = document.getElementById('events-list');
+        var empty    = document.getElementById('events-empty');
+        if (_officialActivities.length === 0) {
+          skeleton.classList.add('hidden');
+          empty.classList.remove('hidden');
+          list.classList.add('hidden');
+          return;
+        }
+        var tagged = _officialActivities.map(function(act) {
+          var ip = _findInProgress(act['활동코드']);
+          var status = !ip ? 'none' : (ip.생기부영역 === '불참' ? 'absent' : 'joined');
+          return { act: act, ip: ip, status: status };
+        });
+        function _sortByDate(arr) {
+          return arr.slice().sort(function(a, b) {
+            return _dateToSortKey(a.act['활동시작날짜']) - _dateToSortKey(b.act['활동시작날짜']);
+          });
+        }
+        var groups = {
+          none:   _sortByDate(tagged.filter(function(t) { return t.status === 'none';   })),
+          joined: _sortByDate(tagged.filter(function(t) { return t.status === 'joined'; })),
+          absent: _sortByDate(tagged.filter(function(t) { return t.status === 'absent'; }))
+        };
+        var groupDefs = [
+          { key: 'none',   wrapClass: 'bg-yellow-50 border border-yellow-200', labelClass: 'text-yellow-700', label: '⬜ 미입력 행사' },
+          { key: 'joined', wrapClass: 'bg-blue-50 border border-blue-200',    labelClass: 'text-blue-700',   label: '✅ 참여한 행사' },
+          { key: 'absent', wrapClass: 'bg-pink-50 border border-pink-200',    labelClass: 'text-pink-700',   label: '✖ 불참 행사'  }
+        ];
+        var html = '';
+        groupDefs.forEach(function(gd) {
+          var items = groups[gd.key];
+          if (items.length === 0) return;
+          html += '<div class="' + gd.wrapClass + ' rounded-xl p-4 space-y-2">';
+          html += '<p class="text-xs font-bold mb-2 ' + gd.labelClass + '">' + gd.label + ' (' + items.length + '건)</p>';
+          items.forEach(function(item) {
+            var act = item.act;
+            var ip  = item.ip;
+            var badgeHtml = item.status === 'joined'
+              ? '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">' + _escapeHtml(ip.생기부영역) + '</span>'
+              : item.status === 'absent'
+                ? '<span class="text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full">불참</span>'
+                : '<span class="text-xs bg-yellow-100 text-yellow-600 px-2 py-0.5 rounded-full">미입력</span>';
+            html += '<div class="bg-white rounded-lg border border-gray-100 p-3 flex items-center gap-3 cursor-pointer hover:border-blue-300 transition shadow-sm"'
+                 + ' onclick="Record.openActivityModal(\'' + _escapeHtml(act['활동코드']) + '\')">';
+            html += '  <div class="flex-1 min-w-0">';
+            html += '    <div class="flex items-center gap-2 flex-wrap mb-0.5">';
+            html += '      <span class="text-xs text-gray-400 font-mono">' + _escapeHtml(act['활동코드']) + '</span>';
+            html += '      ' + badgeHtml;
+            html += '    </div>';
+            html += '    <div class="flex items-center justify-between gap-2 flex-wrap">';
+            html += '      <p class="font-semibold text-gray-800 text-sm truncate">' + _escapeHtml(act['활동명']) + '</p>';
+            html += '      <span class="text-xs text-gray-400 flex-shrink-0">'
+                 + _formatDisplay(act['활동시작날짜']) + ' ~ ' + _formatDisplay(act['활동종료날짜']) + '</span>';
+            html += '    </div>';
+            if (act['활동내용']) {
+             html += '    <p class="text-xs text-gray-500 mt-0.5">' + _escapeHtml(act['활동내용']) + '</p>'; 
+            }
+            html += '  </div>';
+            html += '  <div class="text-blue-400 text-lg">›</div>';
+            html += '</div>';
+          });
+          html += '</div>';
+        });
+        list.innerHTML = html || '<p class="text-sm text-gray-400 text-center py-6">행사가 없습니다.</p>';
+        skeleton.classList.add('hidden');
+        empty.classList.add('hidden');
+        list.classList.remove('hidden');
+      }
+      function _renderAreaPanel(area) {
+        document.getElementById('area-title').textContent = area;
+        var doneEntry   = _doneData.find(function(d) { return d.생기부영역 === area; });
+        var contentText = doneEntry ? doneEntry.생기부내용 : '';
+        var bytes       = doneEntry ? parseInt(doneEntry.글자수 || '0') : 0;
+        var limit       = _BYTE_LIMIT[area] || 1500;
+        var contentBox = document.getElementById('done-content-box');
+        if (contentText) {
+          contentBox.textContent = contentText;
+          contentBox.className = 'bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-700 leading-relaxed mb-4 min-h-[56px] shadow-sm overflow-hidden';
+        } else {
+          contentBox.textContent = '아직 작성된 내용이 없습니다.';
+          contentBox.className = 'bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-400 leading-relaxed mb-4 min-h-[56px] shadow-sm overflow-hidden';
+        }
+        var byteColor = bytes > limit ? 'bg-red-100 text-red-600'
+                      : bytes > limit * 0.9 ? 'bg-orange-100 text-orange-600'
+                      : 'bg-gray-100 text-gray-700';
+        var byteEl = document.getElementById('byte-display');
+        byteEl.className = 'ml-auto text-sm font-semibold px-3 py-1.5 rounded-lg ' + byteColor;
+        byteEl.textContent = bytes + ' / ' + limit + ' bytes';
+        var areaList  = document.getElementById('area-events-list');
+        var myEntries = _inProgressData.filter(function(e) {
+          return e.생기부영역 === area && e.활동코드 && !e.활동코드.startsWith('EXTRA_');
+        });
+        var personalEntry = myEntries.find(function(e) { return e.활동코드 === ('P' + area); });
+        var officialEntries = myEntries.filter(function(e) { return e.활동코드 !== ('P' + area); });
+        if (!personalEntry && officialEntries.length === 0) {
+          areaList.innerHTML = '<p class="text-xs text-gray-400 py-2 pl-1">이 영역에 배치된 공식 행사가 없습니다.</p>';
+        } else {
+          var h2 = '';
+          var blueItems = [];
+          if (personalEntry) {
+            var pCard = '';
+            pCard += '<div class="bg-white rounded-lg border border-gray-100 p-3 flex items-center gap-3 cursor-pointer hover:border-blue-300 transition shadow-sm"'
+               + ' onclick="Record.openPersonalModal()">';
+            pCard += '  <div class="flex-1 min-w-0">';
+            pCard += '    <div class="flex items-center gap-2 flex-wrap mb-0.5">';
+            pCard += '      <span class="text-xs text-gray-400 font-mono">P' + _escapeHtml(area) + '</span>';
+            pCard += '      <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">' + _escapeHtml(area) + '</span>';
+            pCard += '    </div>';
+            pCard += '    <div class="flex items-center justify-between gap-2 flex-wrap">';
+            pCard += '      <p class="font-semibold text-gray-800 text-sm truncate">' + _escapeHtml(personalEntry.활동명 || '개인 추가 활동') + '</p>';
+            pCard += '      <span class="text-xs text-gray-400 flex-shrink-0">'
+               + _formatDisplay(personalEntry.활동시작날짜) + ' ~ ' + _formatDisplay(personalEntry.활동종료날짜) + '</span>';
+            pCard += '    </div>';
+            if (personalEntry.중점역량) {
+              pCard += '    <p class="text-xs text-gray-500 mt-0.5 truncate">' + _escapeHtml(personalEntry.중점역량) + '</p>';
+            }
+            pCard += '  </div>';
+            pCard += '  <div class="text-blue-400 text-lg">›</div>';
+            pCard += '</div>';
+            blueItems.push(pCard);
+          }
+          officialEntries.forEach(function(e) {
+            var officialAct = _officialActivities.find(function(a) { return a['활동코드'] === e.활동코드; });
+            var actContent  = officialAct ? (officialAct['활동내용'] || '') : '';
+            var eCard = '';
+            eCard += '<div class="bg-white rounded-lg border border-gray-100 p-3 flex items-center gap-3 cursor-pointer hover:border-blue-300 transition shadow-sm"'
+               + ' onclick="Record.openActivityModal(\'' + _escapeHtml(e.활동코드) + '\')">';
+            eCard += '  <div class="flex-1 min-w-0">';
+            eCard += '    <div class="flex items-center gap-2 flex-wrap mb-0.5">';
+            eCard += '      <span class="text-xs text-gray-400 font-mono">' + _escapeHtml(e.활동코드) + '</span>';
+            eCard += '      <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">' + _escapeHtml(e.생기부영역) + '</span>';
+            eCard += '    </div>';
+            eCard += '    <div class="flex items-center justify-between gap-2">';
+            eCard += '      <p class="font-semibold text-gray-800 text-sm truncate">' + _escapeHtml(e.활동명) + '</p>';
+            eCard += '      <span class="text-xs text-gray-400 flex-shrink-0">'
+               + _formatDisplay(e.활동시작날짜) + ' ~ ' + _formatDisplay(e.활동종료날짜) + '</span>';
+            eCard += '    </div>';
+            if (actContent) {
+              eCard += '    <p class="text-xs text-gray-500 mt-0.5">' + _escapeHtml(actContent) + '</p>';
+            }
+            eCard += '  </div>';
+            eCard += '  <div class="text-blue-400 text-lg">›</div>';
+            eCard += '</div>';
+            blueItems.push(eCard);
+          });
+          if (blueItems.length > 0) {
+            h2 += '<div class="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">';
+            h2 += blueItems.join('');
+            h2 += '</div>';
+          }
+          areaList.innerHTML = h2;
+        }
+        var allList      = document.getElementById('area-all-events-list');
+        var unenteredActs = _officialActivities.filter(function(act) {
+          return !_findInProgress(act['활동코드']);
+        });
+        var extraEntry = _inProgressData.find(function(e) {
+          return e.활동코드 === ('P' + area) && e.생기부영역 === area;
+        });
+        var personalCardHtml = '';
+        if (extraEntry) {
+        } else {
+          personalCardHtml = '<div class="bg-white rounded-lg border border-gray-100 p-3 flex items-center gap-3 cursor-pointer hover:border-yellow-300 transition shadow-sm mb-2"'
+            + ' onclick="Record.openPersonalModal()">';
+          personalCardHtml += '  <div class="flex-1 min-w-0">';
+          personalCardHtml += '    <div class="flex items-center gap-2 flex-wrap mb-0.5">';
+          personalCardHtml += '      <span class="text-xs text-gray-400 font-mono">P' + _escapeHtml(area) + '</span>';
+          personalCardHtml += '      <span class="text-xs bg-yellow-100 text-yellow-600 px-2 py-0.5 rounded-full">미입력</span>';
+          personalCardHtml += '    </div>';
+          personalCardHtml += '    <div class="flex items-center justify-between gap-2 flex-wrap">';
+          personalCardHtml += '      <p class="font-semibold text-gray-800 text-sm truncate">' + _escapeHtml(area) + '에 입력할 개인 추가 활동</p>';
+          personalCardHtml += '    <div class="w-full mt-1 text-xs text-gray-400">' + _escapeHtml('개인이 스스로 추가하여 진행한 활동을 입력하면 됩니다.') + '</div>';
+          personalCardHtml += '    </div>';
+          personalCardHtml += '  </div>';
+          personalCardHtml += '  <div class="text-gray-400 text-lg">›</div>';
+          personalCardHtml += '</div>';
+        }
+        if (unenteredActs.length === 0 && !personalCardHtml) {
+          allList.innerHTML = '<p class="text-xs text-gray-400 py-2 pl-1">추가할 수 있는 미입력 행사가 없습니다.</p>';
+        } else {
+          var yellowCards = '';
+          if (personalCardHtml) yellowCards += personalCardHtml;
+          unenteredActs.forEach(function(act) {
+            yellowCards += '<div class="bg-white rounded-lg border border-gray-100 p-3 flex items-center gap-3 cursor-pointer hover:border-yellow-300 transition shadow-sm"'
+               + ' onclick="Record.openActivityModal(\'' + _escapeHtml(act['활동코드']) + '\')">';
+            yellowCards += '  <div class="flex-1 min-w-0">';
+            yellowCards += '    <div class="flex items-center gap-2 flex-wrap mb-0.5">';
+            yellowCards += '      <span class="text-xs text-gray-400 font-mono">' + _escapeHtml(act['활동코드']) + '</span>';
+            yellowCards += '      <span class="text-xs bg-yellow-100 text-yellow-600 px-2 py-0.5 rounded-full">미입력</span>';
+            yellowCards += '    </div>';
+            yellowCards += '    <div class="flex items-center justify-between gap-2">';
+            yellowCards += '      <p class="font-semibold text-gray-800 text-sm truncate">' + _escapeHtml(act['활동명']) + '</p>';
+            yellowCards += '      <span class="text-xs text-gray-400 flex-shrink-0">'
+               + _formatDisplay(act['활동시작날짜']) + ' ~ ' + _formatDisplay(act['활동종료날짜']) + '</span>';
+            yellowCards += '    </div>';
+            if (act['활동내용']) {
+              yellowCards += '    <p class="text-xs text-gray-500 mt-0.5">' + _escapeHtml(act['활동내용']) + '</p>';
+            }
+            yellowCards += '  </div>';
+            yellowCards += '  <div class="text-gray-400 text-lg">›</div>';
+            yellowCards += '</div>';
+          });
+          var h3 = '<div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 space-y-2">' + yellowCards + '</div>';
+          allList.innerHTML = h3 || '<p class="text-xs text-gray-400 py-2 pl-1">추가할 수 있는 미입력 행사가 없습니다.</p>';
+        }
+      }
+      function _findInProgress(activityCode, area) {
+        if (activityCode === 'P' && area) {
+          return _inProgressData.find(function(e) {
+            return e.활동코드 === 'P' && e.생기부영역 === area;
+          }) || null;
+        }
+        return _inProgressData.find(function(e) { return e.활동코드 === activityCode; }) || null;
+      }
+      function _openActivityModal(activityCode) {
+        var act = _officialActivities.find(function(a) { return a['활동코드'] === activityCode; });
+        if (!act) { _showModal('행사 정보를 찾을 수 없습니다.'); return; }
+        _modalActivity     = act;
+        _modalParticipated = null;
+        _modalArea         = '';
+        _modalCompetency   = '';
+        var existing = _findInProgress(activityCode);
+        if (existing && existing.생기부영역 !== '불참') {
+          _modalParticipated = true;
+          _modalArea         = existing.생기부영역;
+          _modalCompetency   = existing.중점역량;
+        } else if (existing && existing.생기부영역 === '불참') {
+          _modalParticipated = false;
+        }
+        document.getElementById('activity-modal-title').textContent = act['활동명'];
+        document.getElementById('activity-modal-date').textContent =
+          _formatDisplay(act['활동시작날짜']) + ' ~ ' + _formatDisplay(act['활동종료날짜']);
+        document.getElementById('area-buttons').innerHTML = _AREAS.map(function(a) {
+          var cls = (a === _modalArea)
+            ? 'border-purple-600 bg-purple-100 text-purple-700'
+            : 'border-gray-200 text-gray-600 hover:border-purple-400';
+          return '<button onclick="Record.selectArea(\'' + a + '\')" class="py-2 rounded-lg border-2 text-sm font-medium transition ' + cls + '">' + a + '</button>';
+        }).join('');
+        document.getElementById('competency-buttons').innerHTML = _COMPETENCIES.map(function(c) {
+          var cls = (c === _modalCompetency)
+            ? 'border-purple-600 bg-purple-100 text-purple-700'
+            : 'border-gray-200 text-gray-500 hover:border-purple-400';
+          return '<button onclick="Record.selectCompetency(\'' + c + '\')" class="py-1.5 px-4 rounded-lg border-2 text-sm font-medium transition ' + cls + '">' + c + '</button>';
+        }).join('');
+        document.getElementById('activity-content-input').value =
+          (existing && existing.생기부영역 !== '불참') ? existing.생기부내용 : '';
+        var actDesc = act['활동내용'] || '';
+        var descBox = document.getElementById('activity-desc-box');
+        descBox.textContent = actDesc || '(활동 내용 정보 없음)';
+        if (!actDesc) descBox.classList.add('text-gray-400');
+        else descBox.classList.remove('text-gray-400');
+        _updateModalSections();
+        document.getElementById('activity-modal').classList.remove('hidden');
+      }
+      function _updateModalSections() {
+        var participated = _modalParticipated;
+        var hasArea = !!_modalArea;
+        var hasComp = !!_modalCompetency;
+        var yesBtn = document.getElementById('btn-participated-yes');
+        var noBtn  = document.getElementById('btn-participated-no');
+        if (participated === true) {
+          yesBtn.className = 'flex-1 py-2 rounded-lg border-2 border-purple-600 bg-purple-100 text-purple-700 text-sm font-medium transition';
+          noBtn.className  = 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium transition';
+        } else if (participated === false) {
+          yesBtn.className = 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium transition';
+          noBtn.className  = 'flex-1 py-2 rounded-lg border-2 border-red-400 bg-red-50 text-red-600 text-sm font-medium transition';
+        } else {
+          yesBtn.className = 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium transition';
+          noBtn.className  = 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium transition';
+        }
+        _toggleSection('section-no-warning',    participated === false);
+        _toggleSection('section-area',          participated === true);
+        _toggleSection('section-competency',    participated === true && hasArea);
+        _toggleSection('section-activity-desc', participated === true && hasArea && hasComp);
+        _toggleSection('section-content',       participated === true && hasArea && hasComp);
+        var saveVisible = (participated === true && hasArea && hasComp) || (participated === false);
+        document.getElementById('btn-save-activity').classList.toggle('hidden', !saveVisible);
+      }
+      function _toggleSection(id, show) {
+        var el = document.getElementById(id);
+        if (show) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+      }
+      function _setParticipated(val) {
+        _modalParticipated = val;
+        if (!val) { _modalArea = ''; _modalCompetency = ''; }
+        NaviComponent.setDirty(true);
+        _updateModalSections();
+      }
+      function _selectArea(area) {
+        _modalArea = area;
+        document.getElementById('area-buttons').innerHTML = _AREAS.map(function(a) {
+          var cls = (a === _modalArea)
+            ? 'border-purple-600 bg-purple-100 text-purple-700'
+            : 'border-gray-200 text-gray-600 hover:border-purple-400';
+          return '<button onclick="Record.selectArea(\'' + a + '\')" class="py-2 rounded-lg border-2 text-sm font-medium transition ' + cls + '">' + a + '</button>';
+        }).join('');
+        NaviComponent.setDirty(true);
+        _updateModalSections();
+      }
+      function _selectCompetency(comp) {
+        _modalCompetency = comp;
+        document.getElementById('competency-buttons').innerHTML = _COMPETENCIES.map(function(c) {
+          var cls = (c === _modalCompetency)
+            ? 'border-purple-600 bg-purple-100 text-purple-700'
+            : 'border-gray-200 text-gray-500 hover:border-purple-400';
+          return '<button onclick="Record.selectCompetency(\'' + c + '\')" class="py-1.5 px-4 rounded-lg border-2 text-sm font-medium transition ' + cls + '">' + c + '</button>';
+        }).join('');
+        NaviComponent.setDirty(true);
+        _updateModalSections();
+      }
+      async function _saveActivity() {
+        if (!_modalActivity) return;
+        if (_modalParticipated === false) {
+          var existing = _findInProgress(_modalActivity['활동코드']);
+          _showLoading('불참으로 저장 중...');
+          try {
+            if (existing && existing.생기부영역 !== '불참') {
+              var delResult = await _callAPI('deleteInProgress', {
+                studentId: _studentId, activityCode: _modalActivity['활동코드']
+              });
+              if (!delResult.success) throw new Error(delResult.message);
+              await _callAPI('compileToDone', { studentId: _studentId });
+            }
+            await _callAPI('saveInProgress', {
+              studentId: _studentId, name: _userName,
+              activityCode: _modalActivity['활동코드'],
+              activityName: _modalActivity['활동명'],
+              startDate: _modalActivity['활동시작날짜'],
+              endDate:   _modalActivity['활동종료날짜'],
+              area: '불참', competency: '', content: ''
+            });
+            await _reloadStudentData();
+            NaviComponent.setDirty(false);
+            _closeActivityModal();
+            _switchTab(_currentTab);
+          } catch(e) {
+            _showModal('저장 실패: ' + e.message);
+          } finally {
+            _hideLoading();
+          }
+          return;
+        }
+        var content = document.getElementById('activity-content-input').value.trim();
+        _showLoading('저장 중입니다...');
+        try {
+          var result = await _callAPI('saveInProgress', {
+            studentId: _studentId, name: _userName,
+            activityCode: _modalActivity['활동코드'],
+            activityName: _modalActivity['활동명'],
+            startDate: _modalActivity['활동시작날짜'],
+            endDate:   _modalActivity['활동종료날짜'],
+            area: _modalArea, competency: _modalCompetency, content: content
+          });
+          if (!result.success) throw new Error(result.message);
+          await _callAPI('compileToDone', { studentId: _studentId });
+          await _reloadStudentData();
+          NaviComponent.setDirty(false);
+          _closeActivityModal();
+          _switchTab(_currentTab);
+        } catch(e) {
+          _showModal('저장 실패: ' + e.message);
+        } finally {
+          _hideLoading();
+        }
+      }
+      function _closeActivityModal() {
+        if (NaviComponent.getDirty()) {
+          NaviComponent.showConfirm(function() {
+            document.getElementById('activity-modal').classList.add('hidden');
+            _modalActivity = null;
+          });
+          return;
+        }
+        document.getElementById('activity-modal').classList.add('hidden');
+        _modalActivity = null;
+      }
+      function _openDeleteExtraModal() {
+        document.getElementById('extra-delete-modal').classList.remove('hidden');
+      }
+      function _cancelDeleteExtra() {
+        document.getElementById('extra-delete-modal').classList.add('hidden');
+      }
+      async function _confirmDeleteExtra() {
+        document.getElementById('extra-delete-modal').classList.add('hidden');
+        var area = _currentTab;
+        _showLoading('개인 추가 활동 삭제 중...');
+        try {
+          var result = await _callAPI('deleteExtraActivity', {
+            studentId: _studentId,
+            area: area
+          });
+          if (!result.success) throw new Error(result.message);
+          var compileResult = await _callAPI('compileToDone', { studentId: _studentId });
+          await _reloadStudentData();
+          NaviComponent.setDirty(false);
+          _switchTab(_currentTab);
+        } catch(e) {
+          _showModal('삭제 실패: ' + e.message);
+        } finally {
+          _hideLoading();
+        }
+      }
+      async function _saveExtraActivity() {
+        _showModal('이 기능은 새 개인 추가 활동 입력 방식으로 대체되었습니다.');
+      }
+      function _openViewModal() {
+        var area = _currentTab;
+        if (!_AREAS.includes(area)) return;
+        _viewArea = area;
+        document.getElementById('view-modal-title').textContent = area + ' 전체 내용';
+        var entries = _inProgressData.filter(function(e) {
+          return e.생기부영역 === area;
+        });
+        entries = entries.slice().sort(function(a, b) {
+          return _dateToSortKey(a.활동시작날짜) - _dateToSortKey(b.활동시작날짜);
+        });
+        var body = document.getElementById('view-modal-body');
+        if (entries.length === 0) {
+          body.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">이 영역에 작성된 활동이 없습니다.</p>';
+        } else {
+          var html = '';
+          entries.forEach(function(e, idx) {
+            var dateRange = '';
+            if (e.활동시작날짜 || e.활동종료날짜) {
+              var s = e.활동시작날짜 || '';
+              var en = e.활동종료날짜 || '';
+              dateRange = s === en || !en ? '(' + s + ')' : '(' + s + '-' + en + ')';
+            }
+            function _toFmt(d) {
+              if (!d) return '';
+              if (/^\d{4}\.\d{2}\.\d{2}\.$/.test(d)) return d;
+              var parts = d.replace(/\./g, '-').replace(/-$/, '').split('-');
+              if (parts.length !== 3) return d;
+              return parts[0] + '.' + parseInt(parts[1], 10) + '.' + parseInt(parts[2], 10) + '.';
+            }
+            var fs = _toFmt(e.활동시작날짜);
+            var fe = _toFmt(e.활동종료날짜);
+            var dateRangeFmt = '';
+            if (fs || fe) {
+              dateRangeFmt = (!fe || fs === fe) ? '(' + fs + ')' : '(' + fs + '-' + fe + ')';
+            }
+            var prefix = e.활동명 + dateRangeFmt + (dateRangeFmt ? ' ' : '');
+            var headerText = _escapeHtml(e.활동명) + (dateRange ? ' ' + _escapeHtml(dateRange) : '');
+            var initBytes = _calcBytes(prefix + e.생기부내용);
+            html += '<div class="border border-blue-200 rounded-lg overflow-hidden">';
+            html += '  <div class="bg-blue-100 px-3 py-2 text-sm font-semibold text-blue-800 border-b border-blue-200 flex items-center justify-between">';
+            html += '    <span>' + headerText + '</span>';
+            html += '    <span id="view-item-bytes-' + idx + '" class="text-xs font-normal text-blue-600 ml-2 flex-shrink-0">(입력한 글자수: ' + initBytes + ' byte)</span>';
+            html += '  </div>';
+            var contentLen = (e.생기부내용 || '').length;
+            var taStyle = contentLen <= 1500
+              ? 'border:none; overflow:hidden; resize:none;'
+              : 'border:none; height:400px; overflow-y:auto; resize:none;';
+            html += '  <textarea'
+                 +  '    id="view-edit-' + idx + '"'
+                 +  '    data-view-idx="' + idx + '"'
+                 +  '    data-activity-code="' + _escapeHtml(e.활동코드) + '"'
+                 +  '    data-area="' + _escapeHtml(e.생기부영역) + '"'
+                 +  '    data-prefix="' + _escapeHtml(prefix) + '"'
+                 +  '    data-auto-resize="' + (contentLen <= 1500 ? 'true' : 'false') + '"'
+                 +  '    oninput="Record.onViewModalInput(this, ' + idx + ')"'
+                 +  '    class="w-full p-3 text-sm text-gray-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-purple-400"'
+                 +  '    style="' + taStyle + '"'
+                 +  '  >' + _escapeHtml(e.생기부내용) + '</textarea>';
+            html += '</div>';
+          });
+          body.innerHTML = html;
+        }
+        _updateViewModalBytes();
+        document.getElementById('view-modal').classList.remove('hidden');
+        requestAnimationFrame(function() {
+          var tas = document.getElementById('view-modal-body').querySelectorAll('textarea[data-auto-resize="true"]');
+          tas.forEach(function(ta) {
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+          });
+        });
+      }
+      function _updateViewModalBytes() {
+        var area  = _viewArea;
+        var limit = _BYTE_LIMIT[area] || 1500;
+        var textareas = document.getElementById('view-modal-body').querySelectorAll('textarea');
+        var parts = [];
+        textareas.forEach(function(ta) {
+          var prefix = ta.getAttribute('data-prefix') || '';
+          parts.push(prefix + ta.value);
+        });
+        var combined = parts.join(' ');
+        var bytes = _calcBytes(combined);
+        var byteEl = document.getElementById('view-byte-info');
+        byteEl.textContent = bytes + ' / ' + limit + ' bytes';
+        byteEl.className = 'text-sm font-semibold '
+          + (bytes > limit ? 'text-red-600' : bytes > limit * 0.9 ? 'text-orange-500' : 'text-gray-500');
+      }
+      function _onViewModalInput(ta, idx) {
+        if (ta && idx !== undefined) {
+          var prefix    = ta.getAttribute('data-prefix') || '';
+          var itemBytes = _calcBytes(prefix + ta.value);
+          var itemEl = document.getElementById('view-item-bytes-' + idx);
+          if (itemEl) itemEl.textContent = '(입력한 글자수: ' + itemBytes + ' byte)';
+        }
+        if (ta && ta.getAttribute('data-auto-resize') === 'true') {
+          ta.style.height = 'auto';
+          ta.style.height = ta.scrollHeight + 'px';
+        }
+        _updateViewModalBytes();
+        NaviComponent.setDirty(true);
+      }
+      async function _saveViewModal() {
+        var area = _viewArea;
+        var textareas = document.getElementById('view-modal-body').querySelectorAll('textarea');
+        if (textareas.length === 0) return;
+        _showLoading('저장 중입니다...');
+        try {
+          for (var i = 0; i < textareas.length; i++) {
+            var ta          = textareas[i];
+            var actCode     = ta.getAttribute('data-activity-code');
+            var taArea      = ta.getAttribute('data-area');
+            var newContent  = ta.value;
+            var entry;
+            if (actCode && actCode.startsWith('P') && actCode.length > 1) {
+              entry = _inProgressData.find(function(e) {
+                return e.활동코드 === actCode && e.생기부영역 === taArea;
+              });
+            } else if (actCode === 'P') {
+              entry = _inProgressData.find(function(e) {
+                return e.활동코드 === 'P' && e.생기부영역 === taArea;
+              });
+            } else {
+              entry = _inProgressData.find(function(e) {
+                return e.활동코드 === actCode;
+              });
+            }
+            if (!entry) continue;
+            var result = await _callAPI('saveInProgress', {
+              studentId:    _studentId,
+              name:         _userName,
+              activityCode: entry.활동코드,
+              activityName: entry.활동명,
+              startDate:    entry.활동시작날짜,
+              endDate:      entry.활동종료날짜,
+              area:         entry.생기부영역,
+              competency:   entry.중점역량,
+              content:      newContent
+            });
+            if (!result.success) throw new Error(result.message);
+          }
+          var compileResult = await _callAPI('compileToDone', { studentId: _studentId });
+          if (!compileResult.success) throw new Error(compileResult.message);
+          await _reloadStudentData();
+          NaviComponent.setDirty(false);
+          _closeViewModal();
+          _switchTab(_currentTab);
+        } catch(e) {
+          _showModal('저장 실패: ' + e.message);
+        } finally {
+          _hideLoading();
+        }
+      }
+      function _closeViewModal() {
+        if (NaviComponent.getDirty()) {
+          NaviComponent.showConfirm(function() { document.getElementById('view-modal').classList.add('hidden'); });
+          return;
+        }
+        document.getElementById('view-modal').classList.add('hidden');
+      }
+      function _toggleExtraForm() {  }
+      function _openExtraForm()   {  }
+      async function _reloadStudentData() {
+        var [ipResult, doneResult] = await Promise.all([
+          _callAPI('getInProgress', { studentId: _studentId }),
+          _callAPI('getDone',       { studentId: _studentId })
+        ]);
+        _inProgressData = (ipResult.success  && ipResult.data)  || [];
+        _doneData       = (doneResult.success && doneResult.data) || [];
+        _updateCompetencyCount();
+      }
+      function _updateCompetencyCount() {
+        var counts = { '교과역량': 0, '진로역량': 0, '공동체역량': 0 };
+        _inProgressData.forEach(function(e) {
+          if (e.중점역량 && counts.hasOwnProperty(e.중점역량)) {
+            counts[e.중점역량]++;
+          }
+        });
+        var el = document.getElementById('competency-count-text');
+        if (el) {
+          el.textContent = '교과 역량: ' + counts['교과역량'] + '회  진로 역량: ' + counts['진로역량'] + '회  공동체 역량: ' + counts['공동체역량'] + '회';
+        }
+      }
+      async function _init() {
+        _renderTabs();
+        document.getElementById('panel-events').classList.remove('hidden');
+        try {
+          var [actResult, ipResult, doneResult] = await Promise.all([
+            _callAPI('getOfficialActivities'),
+            _callAPI('getInProgress', { studentId: _studentId }),
+            _callAPI('getDone',       { studentId: _studentId })
+          ]);
+          _officialActivities = (actResult.success  && actResult.data)  || [];
+          _inProgressData     = (ipResult.success   && ipResult.data)   || [];
+          _doneData           = (doneResult.success  && doneResult.data)  || [];
+          _updateCompetencyCount();
+          _switchTab('행사목록');
+        } catch(e) {
+          console.error('초기 로드 오류:', e);
+          _showModal('데이터를 불러오는 중 오류가 발생했습니다.');
+          document.getElementById('events-skeleton').classList.add('hidden');
+          document.getElementById('events-empty').classList.remove('hidden');
+        }
+      }
+      function _navigateTo(page) {
+        var params = new URLSearchParams({ studentId: _studentId, name: _userName });
+        switch (page) {
+          case 'home':
+            window.location.href = _GITHUB_PAGE_URL + '/firstpage.html?' + params.toString();
+            break;
+          case 'suneung':
+            window.location.href = _GITHUB_PAGE_URL + '/susel.html?' + params.toString();
+            break;
+          case 'university':
+            _showModal('응시희망대학 페이지는 준비 중입니다.');
+            break;
+        }
+      }
+      var _personalParticipated = null;
+      var _personalCompetency   = '';
+      var _personalArea         = '';
+      function _openPersonalModal() {
+        var area = _currentTab;
+        if (!_AREAS.includes(area)) return;
+        _personalArea         = area;
+        _personalParticipated = null;
+        _personalCompetency   = '';
+        document.getElementById('personal-modal-title').textContent = '✏️ ' + area + '에 입력할 개인 추가 활동';
+        document.getElementById('personal-modal-area-label').textContent = area + ' 영역';
+        var existing = _inProgressData.find(function(e) {
+          return e.활동코드 === ('P' + area) && e.생기부영역 === area;
+        }) || null;
+        if (existing) {
+          _personalParticipated = true;
+          _personalCompetency   = existing.중점역량 || '';
+          document.getElementById('personal-activity-name').value  = existing.활동명 || '';
+          document.getElementById('personal-content-input').value  = existing.생기부내용 || '';
+          function _parseDateToInputs(dateStr, prefix) {
+            var raw   = (dateStr || '').replace(/\./g, '-').replace(/-$/, '');
+            var parts = raw.split('-');
+            document.getElementById(prefix + '-year').value  = parts[0] ? parts[0] : '2026';
+            document.getElementById(prefix + '-month').value = parts[1] ? String(parseInt(parts[1], 10)) : '';
+            document.getElementById(prefix + '-day').value   = parts[2] ? String(parseInt(parts[2], 10)) : '';
+          }
+          _parseDateToInputs(existing.활동시작날짜, 'personal-start');
+          _parseDateToInputs(existing.활동종료날짜, 'personal-end');
+        } else {
+          _personalParticipated = null;
+          document.getElementById('personal-activity-name').value  = '';
+          document.getElementById('personal-content-input').value  = '';
+          document.getElementById('personal-start-year').value     = '2026';
+          document.getElementById('personal-start-month').value    = '';
+          document.getElementById('personal-start-day').value      = '';
+          document.getElementById('personal-end-year').value       = '2026';
+          document.getElementById('personal-end-month').value      = '';
+          document.getElementById('personal-end-day').value        = '';
+        }
+        _renderPersonalCompetencyButtons();
+        _updatePersonalModalSections();
+        document.getElementById('personal-activity-modal').classList.remove('hidden');
+      }
+      function _renderPersonalCompetencyButtons() {
+        document.getElementById('personal-competency-buttons').innerHTML = _COMPETENCIES.map(function(c) {
+          var cls = (c === _personalCompetency)
+            ? 'border-purple-600 bg-purple-100 text-purple-700'
+            : 'border-gray-200 text-gray-500 hover:border-purple-400';
+          return '<button onclick="Record.personalSelectCompetency(\'' + c + '\')" class="py-1.5 px-4 rounded-lg border-2 text-sm font-medium transition ' + cls + '">' + c + '</button>';
+        }).join('');
+      }
+      function _updatePersonalModalSections() {
+        var p = _personalParticipated;
+        var yesBtn = document.getElementById('personal-btn-yes');
+        var noBtn  = document.getElementById('personal-btn-no');
+        if (p === true) {
+          yesBtn.className = 'flex-1 py-2 rounded-lg border-2 border-purple-600 bg-purple-100 text-purple-700 text-sm font-medium transition';
+          noBtn.className  = 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium transition';
+        } else if (p === false) {
+          yesBtn.className = 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium transition';
+          noBtn.className  = 'flex-1 py-2 rounded-lg border-2 border-red-400 bg-red-50 text-red-600 text-sm font-medium transition';
+        } else {
+          yesBtn.className = 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium transition';
+          noBtn.className  = 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium transition';
+        }
+        var hasComp = !!_personalCompetency;
+        _toggleSection('personal-section-no-warning', p === false);
+        _toggleSection('personal-section-name',       p === true);
+        _toggleSection('personal-section-dates',      p === true);
+        _toggleSection('personal-section-competency', p === true);
+        _toggleSection('personal-section-content',    p === true && hasComp);
+        var existingData = _inProgressData.find(function(e) {
+          return e.활동코드 === ('P' + _personalArea) && e.생기부영역 === _personalArea;
+        });
+        var saveVisible = (p === true && hasComp) || (p === false && !!existingData);
+        document.getElementById('personal-btn-save').classList.toggle('hidden', !saveVisible);
+      }
+      function _personalSetParticipated(val) {
+        _personalParticipated = val;
+        if (!val) { _personalCompetency = ''; }
+        NaviComponent.setDirty(true);
+        _updatePersonalModalSections();
+      }
+      function _personalSelectCompetency(comp) {
+        _personalCompetency = comp;
+        _renderPersonalCompetencyButtons();
+        NaviComponent.setDirty(true);
+        _updatePersonalModalSections();
+      }
+      function _validatePersonalDates() {
+        var sy = parseInt(document.getElementById('personal-start-year').value.trim(),  10);
+        var sm = parseInt(document.getElementById('personal-start-month').value.trim(), 10);
+        var sd = parseInt(document.getElementById('personal-start-day').value.trim(),   10);
+        var ey = parseInt(document.getElementById('personal-end-year').value.trim(),    10);
+        var em = parseInt(document.getElementById('personal-end-month').value.trim(),   10);
+        var ed = parseInt(document.getElementById('personal-end-day').value.trim(),     10);
+        var syStr = document.getElementById('personal-start-year').value.trim();
+        var eyStr = document.getElementById('personal-end-year').value.trim();
+        var errors = [];
+        if (!syStr || !/^\d{4}$/.test(syStr)) errors.push('활동 시작일의 년도를 4자리 숫자로 입력하세요. (예: 2026)');
+        if (!eyStr || !/^\d{4}$/.test(eyStr)) errors.push('활동 종료일의 년도를 4자리 숫자로 입력하세요. (예: 2026)');
+        if (errors.length === 0) {
+          if (isNaN(sm) || sm < 1 || sm > 12) errors.push('활동 시작일의 월은 1~12 범위로 입력하세요.');
+          if (isNaN(em) || em < 1 || em > 12) errors.push('활동 종료일의 월은 1~12 범위로 입력하세요.');
+          if (isNaN(sd) || sd < 1 || sd > 31) errors.push('활동 시작일의 일은 1~31 범위로 입력하세요.');
+          if (isNaN(ed) || ed < 1 || ed > 31) errors.push('활동 종료일의 일은 1~31 범위로 입력하세요.');
+        }
+        if (errors.length > 0) return { valid: false, message: errors.join('\n') };
+        var startNum = sy * 10000 + sm * 100 + sd;
+        var endNum   = ey * 10000 + em * 100 + ed;
+        if (startNum > endNum) {
+          return { valid: false, message: '활동 시작일이 활동 종료일보다 늦습니다.\n시작일과 종료일을 다시 확인하세요.' };
+        }
+        function _fmt(y, m, d) {
+          return y + '.' + String(m).padStart(2,'0') + '.' + String(d).padStart(2,'0') + '.';
+        }
+        return { valid: true, startDate: _fmt(sy, sm, sd), endDate: _fmt(ey, em, ed) };
+      }
+      async function _savePersonalActivity() {
+        var area = _personalArea;
+        if (_personalParticipated === false) {
+          var existing = _inProgressData.find(function(e) {
+            return e.활동코드 === ('P' + area) && e.생기부영역 === area;
+          });
+          if (!existing) { _closePersonalModal(); return; }
+          _showLoading('개인 추가 활동 삭제 중...');
+          try {
+            var delResult = await _callAPI('deleteInProgress', {
+              studentId: _studentId,
+              activityCode: 'P' + area
+            });
+            if (!delResult.success) throw new Error(delResult.message);
+            await _callAPI('compileToDone', { studentId: _studentId });
+            await _reloadStudentData();
+            NaviComponent.setDirty(false);
+            _closePersonalModal();
+            _switchTab(_currentTab);
+          } catch(e) {
+            _showModal('삭제 실패: ' + e.message);
+          } finally {
+            _hideLoading();
+          }
+          return;
+        }
+        var activityName = document.getElementById('personal-activity-name').value.trim();
+        var content      = document.getElementById('personal-content-input').value.trim();
+        if (!activityName) { _showModal('활동명을 입력하세요.'); return; }
+        if (!content)      { _showModal('활동 내용을 입력하세요.'); return; }
+        var dateResult = _validatePersonalDates();
+        if (!dateResult.valid) { _showModal(dateResult.message); return; }
+        _showLoading('개인 추가 활동 저장 중...');
+        try {
+          var result = await _callAPI('saveInProgress', {
+            studentId:    _studentId,
+            name:         _userName,
+            activityCode: 'P' + area,
+            activityName: activityName,
+            startDate:    dateResult.startDate,
+            endDate:      dateResult.endDate,
+            area:         area,
+            competency:   _personalCompetency,
+            content:      content
+          });
+          if (!result.success) throw new Error(result.message);
+          await _callAPI('compileToDone', { studentId: _studentId });
+          await _reloadStudentData();
+          NaviComponent.setDirty(false);
+          _closePersonalModal();
+          _switchTab(_currentTab);
+        } catch(e) {
+          _showModal('저장 실패: ' + e.message);
+        } finally {
+          _hideLoading();
+        }
+      }
+      function _closePersonalModal() {
+        if (NaviComponent.getDirty()) {
+          NaviComponent.showConfirm(function() {
+            document.getElementById('personal-activity-modal').classList.add('hidden');
+            _personalParticipated = null;
+            _personalCompetency   = '';
+          });
+          return;
+        }
+        document.getElementById('personal-activity-modal').classList.add('hidden');
+        _personalParticipated = null;
+        _personalCompetency   = '';
+      }
+      function _doLogout() {
+        window.location.href = _GITHUB_PAGE_URL + '/index.html';
+      }
+      document.addEventListener('DOMContentLoaded', function() {
+        NaviComponent.init({
+          activePage: 'record',
+          userName: _userName,
+          studentId: _studentId,
+          onLogout: function() { Record.doLogout(); }
+        });
+        _init();
+      });
+      return {
+        switchTab:          _switchTab,
+        navigateTo:         _navigateTo,
+        doLogout:           _doLogout,
+        showModal:          _showModal,
+        closeModal:         _closeModal,
+        openActivityModal:  _openActivityModal,
+        closeActivityModal: _closeActivityModal,
+        setParticipated:    _setParticipated,
+        selectArea:         _selectArea,
+        selectCompetency:   _selectCompetency,
+        saveActivity:       _saveActivity,
+        saveExtraActivity:  _saveExtraActivity,
+        openDeleteExtraModal: _openDeleteExtraModal,
+        cancelDeleteExtra:  _cancelDeleteExtra,
+        confirmDeleteExtra: _confirmDeleteExtra,
+        openViewModal:            _openViewModal,
+        closeViewModal:           _closeViewModal,
+        onViewModalInput:         _onViewModalInput,
+        saveViewModal:            _saveViewModal,
+        toggleExtraForm:          _toggleExtraForm,
+        openExtraForm:            _openExtraForm,
+        openPersonalModal:        _openPersonalModal,
+        closePersonalModal:       _closePersonalModal,
+        personalSetParticipated:  _personalSetParticipated,
+        personalSelectCompetency: _personalSelectCompetency,
+        savePersonalActivity:     _savePersonalActivity
+      };
+    })();
+  </script>
+</body>
+</html>

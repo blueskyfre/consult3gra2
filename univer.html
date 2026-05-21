@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관심대학 조사</title>
+  <script src="config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="navi.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 0.5rem;
+    }
+    .skeleton-row  { height: 52px; width: 100%; margin-bottom: 6px; }
+    .skeleton-text { height: 20px; width: 40%; margin-bottom: 12px; }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 12px 28px; border-radius: 12px; color: #fff; font-weight: 600;
+      z-index: 99999; opacity: 0; transition: opacity 0.3s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18); white-space: nowrap;
+    }
+    .toast.show    { opacity: 1; }
+    .toast-success { background: #22c55e; }
+    .toast-error   { background: #ef4444; }
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9990; padding: 1rem;
+    }
+    .warn-modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99990; padding: 1rem;
+    }
+    .seg-btn {
+      flex: 1; padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 500;
+      border: 1px solid #d1d5db; background: #fff; color: #374151;
+      cursor: pointer; transition: all 0.15s; text-align: center;
+    }
+    .seg-btn:first-child { border-radius: 0.375rem 0 0 0.375rem; }
+    .seg-btn:last-child  { border-radius: 0 0.375rem 0.375rem 0; }
+    .seg-btn:not(:first-child) { border-left: none; }
+    .seg-btn.selected {
+      background: #2563eb; color: #fff; border-color: #2563eb; font-weight: 600;
+    }
+    .seg-btn:hover:not(.selected) { background: #eff6ff; border-color: #93c5fd; }
+    .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 54px; 
+    padding: 4px 8px; 
+    height: 28px; 
+    border-radius: 6px; 
+    font-size: 0.8rem; font-weight: 700;
+    background: #e0e7ff; color: #3730a3;
+    flex-shrink: 0;
+    white-space: nowrap; 
+    }
+    .rank-badge-1 { background: #fef3c7; color: #92400e; }
+    .rank-badge-2 { background: #fef3c7; color: #92400e; }
+    .rank-badge-3 { background: #fef3c7; color: #92400e; }
+    .field-label { font-size: 0.75rem; font-weight: 600; color: #4b5563; margin-bottom: 4px; }
+    .field-input {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 0.375rem;
+      padding: 0.45rem 0.6rem; font-size: 0.85rem; color: #111827;
+      outline: none; transition: border-color 0.15s;
+    }
+    .field-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    select.field-input { background: #fff; cursor: pointer; }
+    .date-group { display: flex; align-items: center; gap: 6px; }
+    .date-input {
+      border: 1px solid #d1d5db; border-radius: 0.375rem;
+      padding: 0.4rem 0.5rem; font-size: 0.82rem; color: #111827;
+      outline: none; transition: border-color 0.15s; text-align: center;
+    }
+    .date-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    .date-sep { font-size: 0.85rem; color: #6b7280; font-weight: 600; }
+    .date-result {
+      font-size: 0.78rem; color: #2563eb; font-weight: 600;
+      padding: 3px 8px; background: #eff6ff; border-radius: 6px;
+      min-height: 24px; display: inline-block;
+    }
+    .univ-card {
+      background: #fff;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      cursor: default;
+      transition: box-shadow 0.2s, border-color 0.2s, transform 0.1s;
+      position: relative;
+      user-select: none;
+    }
+    .univ-card:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 4px 18px rgba(37,99,235,0.10);
+    }
+    .univ-card.sortable-ghost {
+      opacity: 0.45;
+      border: 2px dashed #93c5fd;
+      background: #eff6ff;
+      transform: scale(0.98);
+    }
+    .univ-card.sortable-chosen {
+      box-shadow: 0 8px 32px rgba(37,99,235,0.18);
+      border-color: #2563eb;
+      cursor: grabbing;
+    }
+    .card-drag-handle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 8px;
+      background: #f3f4f6; color: #9ca3af;
+      cursor: grab; flex-shrink: 0;
+      font-size: 1rem; transition: background 0.15s;
+    }
+    .card-drag-handle:hover { background: #e0e7ff; color: #3730a3; }
+    .card-drag-overlay {
+      position: absolute;
+      inset: 0;
+      clip-path: polygon(
+        0% 0%,
+        calc(100% - 130px) 0%,
+        calc(100% - 130px) 46px,
+        100% 46px,
+        100% 100%,
+        0% 100%
+      );
+      cursor: grab;
+      z-index: 1;
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      border-radius: 16px;
+    }
+    .card-drag-overlay:active { cursor: grabbing; }
+    .card-info-row {
+      display: flex; flex-wrap: wrap; gap: 6px 10px;
+      align-items: center; margin-top: 8px;
+    }
+    .card-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 8px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 600;
+    }
+    .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+    .badge-green  { background: #d1fae5; color: #065f46; }
+    .badge-orange { background: #ffedd5; color: #c2410c; }
+    .badge-gray   { background: #f3f4f6; color: #6b7280; }
+    .badge-purple { background: #ede9fe; color: #5b21b6; }
+    .badge-red    { background: #fee2e2; color: #991b1b; }
+    .badge-yellow { background: #fef9c3; color: #854d0e; }
+    .badge-indigo { background: #e0e7ff; color: #3730a3; }
+    .card-section-divider {
+      height: 1px; background: #f3f4f6; margin: 10px 0;
+    }
+    .card-date-row {
+      display: flex; flex-wrap: wrap; gap: 4px 8px;
+      font-size: 0.73rem; color: #6b7280;
+    }
+    .card-date-item {
+      display: flex; align-items: center; gap: 4px;
+    }
+    .card-date-label {
+      font-weight: 600; color: #374151;
+    }
+    .card-remark {
+      display: flex; align-items: flex-start; gap: 5px;
+      background: #f0f9ff; border-left: 3px solid #93c5fd;
+      border-radius: 0 6px 6px 0; padding: 6px 10px; margin-top: 10px;
+      font-size: 0.75rem; color: #374151; line-height: 1.5;
+    }
+    .card-remark-label {
+      font-size: 0.68rem; font-weight: 700; color: #2563eb;
+      white-space: nowrap; margin-top: 1px;
+    }
+    .card-edit-btn {
+      padding: 4px 10px; background: #eff6ff; color: #2563eb;
+      border: 1px solid #bfdbfe; border-radius: 8px;
+      font-size: 0.72rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s; white-space: nowrap;
+      pointer-events: auto;
+    }
+    .card-edit-btn:hover { background: #dbeafe; }
+    .card-delete-btn {
+      padding: 4px 10px; background: #fff5f5; color: #dc2626;
+      border: 1px solid #fecaca; border-radius: 8px;
+      font-size: 0.72rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s; white-space: nowrap;
+      pointer-events: auto;
+    }
+    .card-delete-btn:hover { background: #fee2e2; }
+    .card-btn-group {
+      position: absolute; right: 14px; top: 14px;
+      display: flex; gap: 5px; align-items: center;
+      pointer-events: auto;
+      cursor: auto;
+    }
+    .univ-card .card-btn-group * {
+      cursor: pointer !important;
+    }
+    .univ-card-empty {
+      border-style: dashed;
+      border-color: #d1d5db;
+      background: #fafafa;
+      cursor: pointer;
+    }
+    .univ-card-empty:hover {
+      border-color: #93c5fd;
+      background: #eff6ff;
+    }
+    body.navi-loading-active button,
+    body.navi-loading-active a,
+    body.navi-loading-active select,
+    body.navi-loading-active input[type="button"],
+    body.navi-loading-active input[type="submit"] {
+      pointer-events: none !important;
+      opacity: 0.4 !important;
+      cursor: not-allowed !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="shared-nav"></div>
+  <div id="skeleton-ui" class="max-w-3xl mx-auto px-4 py-5">
+    <div class="skeleton skeleton-text mb-6" style="width:28%;height:22px;"></div>
+    <div class="bg-white rounded-xl shadow-sm p-4">
+      <div class="skeleton skeleton-text mb-4" style="width:20%;"></div>
+      <div class="skeleton skeleton-row"></div>
+      <div class="skeleton skeleton-row"></div>
+      <div class="skeleton skeleton-row"></div>
+      <div class="skeleton skeleton-row"></div>
+      <div class="skeleton skeleton-row"></div>
+    </div>
+  </div>
+  <div id="main-content" class="hidden max-w-3xl mx-auto px-4 py-5">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-lg sm:text-xl font-bold text-gray-800">🏫 관심대학 조사</h1>
+      <p class="text-xs text-gray-500 hidden sm:block">카드를 드래그하여 순위를 변경할 수 있습니다.</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+      <div class="flex items-center gap-3 flex-wrap">
+        <span class="text-sm font-bold text-gray-700 whitespace-nowrap">📌 선호전형</span>
+        <div class="flex flex-1 min-w-[240px]" id="pref-type-group">
+          <button class="seg-btn" data-value="수시 위주"        onclick="UniverNS.setPrefType(this)">수시 위주</button>
+          <button class="seg-btn" data-value="정시 위주"        onclick="UniverNS.setPrefType(this)">정시 위주</button>
+          <button class="seg-btn" data-value="수시와 정시 모두 준비" onclick="UniverNS.setPrefType(this)">수시·정시 모두</button>
+        </div>
+        <button onclick="UniverNS.savePrefType()"
+          class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition border border-green-600 whitespace-nowrap">
+          선호전형 저장
+        </button>
+      </div>
+      <div class="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-bold text-gray-700 whitespace-nowrap">🎯 지원가능전형</span>
+          <button onclick="UniverNS.openEligibleTypeModal()"
+            id="eligible-type-change-btn"
+            class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition border border-blue-600 whitespace-nowrap">
+            변경
+          </button>
+          <button onclick="UniverNS.openEligibleDescModal()"
+            class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition border border-indigo-300 whitespace-nowrap">
+            📋 전형 설명
+          </button>
+        </div>
+        <span id="eligible-type-display" class="text-sm text-gray-600 break-words"></span>
+      </div>
+    </div>
+    <div id="univ-card-sortable" class="pb-2">
+    </div>
+    <p class="text-xs text-gray-400 mt-1 mb-4 text-center">💡 카드를 드래그하여 순위를 조정하거나, 카드의 ✏️ 수정 버튼을 눌러 정보를 입력하세요.</p>
+  </div>
+  <div id="row-modal" class="modal-bg hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <h2 class="text-base font-bold text-gray-800">
+          🏫 관심대학 입력 — <span id="modal-rank-label" class="text-green-600"></span>순위
+        </h2>
+        <button onclick="UniverNS.closeModal()"
+          class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none transition">✕</button>
+      </div>
+      <div class="px-5 py-4 space-y-4">
+        <div>
+          <div class="field-label">순위</div>
+          <select id="modal-rank" class="field-input">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">대학명</div>
+          <input type="text" id="modal-univ" class="field-input" placeholder="대학명을 입력하세요" />
+        </div>
+        <div>
+          <div class="field-label">전형유형</div>
+          <select id="modal-adms-type" class="field-input" onchange="UniverNS.onAdmsTypeChange()">
+            <option value="">선택</option>
+            <option value="학생부위주(교과)">학생부위주(교과)</option>
+            <option value="학생부위주(종합)">학생부위주(종합)</option>
+            <option value="논술위주">논술위주</option>
+            <option value="실기위주">실기위주</option>
+            <option value="기타">기타(직접 입력)</option>
+          </select>
+          <input type="text" id="modal-adms-type-etc" class="field-input mt-1 hidden"
+            placeholder="전형유형을 직접 입력하세요" />
+        </div>
+        <div>
+          <div class="field-label">전형종류</div>
+          <select id="modal-adms-kind" class="field-input" onchange="UniverNS.onAdmsKindChange()">
+            <option value="">선택</option>
+            <option value="일반학생">일반학생</option>
+            <option value="지역인재전형">지역인재전형</option>
+            <option value="지역균형전형">지역균형전형</option>
+            <option value="기회균형">기회균형</option>
+            <option value="추천자">추천자</option>
+            <option value="기타">기타(직접 입력)</option>
+          </select>
+          <input type="text" id="modal-adms-kind-etc" class="field-input mt-1 hidden"
+            placeholder="전형종류를 직접 입력하세요" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="field-label">지원학과</div>
+            <input type="text" id="modal-dept" class="field-input" placeholder="지원학과" />
+          </div>
+          <div>
+            <div class="field-label">모집정원</div>
+            <input type="text" id="modal-quota" class="field-input" placeholder="모집정원" />
+          </div>
+        </div>
+        <div>
+          <div class="field-label">수능최저</div>
+          <div class="flex gap-2 mb-2" id="csat-min-group">
+            <button class="seg-btn" data-value="유" onclick="UniverNS.setCsatMin(this)">유</button>
+            <button class="seg-btn" data-value="무" onclick="UniverNS.setCsatMin(this)">무</button>
+          </div>
+          <input type="text" id="modal-csat-detail" class="field-input hidden"
+            placeholder="예) 3합 10, 탐구 2개 필수, 탐구 2개 평균 반영" />
+        </div>
+        <div>
+          <div class="field-label">선발유형</div>
+          <div class="flex" id="sel-type-group">
+            <button class="seg-btn" data-value="일괄형" onclick="UniverNS.setSelType(this)">일괄형</button>
+            <button class="seg-btn" data-value="단계형" onclick="UniverNS.setSelType(this)">단계형</button>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">면접유무</div>
+          <div class="flex" id="interview-group">
+            <button class="seg-btn" data-value="유" onclick="UniverNS.setInterview(this)">유</button>
+            <button class="seg-btn" data-value="무" onclick="UniverNS.setInterview(this)">무</button>
+          </div>
+        </div>
+        <div id="interview-detail-section" class="hidden pl-3 border-l-2 border-blue-200 space-y-3">
+          <div>
+            <div class="field-label">면접 실시 지역</div>
+            <input type="text" id="modal-interview-region" class="field-input" placeholder="예) 서울, 부산, 대구 등" />
+          </div>
+          <div>
+            <div class="field-label">면접 시작일</div>
+            <div class="date-group">
+              <input type="number" id="modal-interview-start-y" class="date-input" style="width:80px;" placeholder="년" min="2026" max="2035" />
+              <span class="date-sep">년</span>
+              <input type="number" id="modal-interview-start-m" class="date-input" style="width:46px;" placeholder="월" min="1" max="12" />
+              <span class="date-sep">월</span>
+              <input type="number" id="modal-interview-start-d" class="date-input" style="width:46px;" placeholder="일" min="1" max="31" />
+              <span class="date-sep">일</span>
+              <span id="modal-interview-start-preview" class="date-result"></span>
+            </div>
+          </div>
+          <div>
+            <div class="field-label">면접 종료일</div>
+            <div class="date-group">
+              <input type="number" id="modal-interview-end-y" class="date-input" style="width:80px;" placeholder="년" min="2026" max="2035" />
+              <span class="date-sep">년</span>
+              <input type="number" id="modal-interview-end-m" class="date-input" style="width:46px;" placeholder="월" min="1" max="12" />
+              <span class="date-sep">월</span>
+              <input type="number" id="modal-interview-end-d" class="date-input" style="width:46px;" placeholder="일" min="1" max="31" />
+              <span class="date-sep">일</span>
+              <span id="modal-interview-end-preview" class="date-result"></span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">실기유무</div>
+          <div class="flex" id="practical-group">
+            <button class="seg-btn" data-value="유" onclick="UniverNS.setPractical(this)">유</button>
+            <button class="seg-btn" data-value="무" onclick="UniverNS.setPractical(this)">무</button>
+          </div>
+        </div>
+        <div id="practical-detail-section" class="hidden pl-3 border-l-2 border-purple-200 space-y-3">
+          <div>
+            <div class="field-label">실기 실시 지역</div>
+            <input type="text" id="modal-practical-region" class="field-input" placeholder="예) 서울, 부산, 대구 등" />
+          </div>
+          <div>
+            <div class="field-label">실기 시작일</div>
+            <div class="date-group">
+              <input type="number" id="modal-practical-start-y" class="date-input" style="width:80px;" placeholder="년" min="2026" max="2035" />
+              <span class="date-sep">년</span>
+              <input type="number" id="modal-practical-start-m" class="date-input" style="width:46px;" placeholder="월" min="1" max="12" />
+              <span class="date-sep">월</span>
+              <input type="number" id="modal-practical-start-d" class="date-input" style="width:46px;" placeholder="일" min="1" max="31" />
+              <span class="date-sep">일</span>
+              <span id="modal-practical-start-preview" class="date-result"></span>
+            </div>
+          </div>
+          <div>
+            <div class="field-label">실기 종료일</div>
+            <div class="date-group">
+              <input type="number" id="modal-practical-end-y" class="date-input" style="width:80px;" placeholder="년" min="2026" max="2035" />
+              <span class="date-sep">년</span>
+              <input type="number" id="modal-practical-end-m" class="date-input" style="width:46px;" placeholder="월" min="1" max="12" />
+              <span class="date-sep">월</span>
+              <input type="number" id="modal-practical-end-d" class="date-input" style="width:46px;" placeholder="일" min="1" max="31" />
+              <span class="date-sep">일</span>
+              <span id="modal-practical-end-preview" class="date-result"></span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">지원성향판단</div>
+          <select id="modal-tendency" class="field-input">
+            <option value="">선택</option>
+            <option value="과도한 상향">과도한 상향</option>
+            <option value="상향">상향</option>
+            <option value="적정">적정</option>
+            <option value="하향">하향</option>
+            <option value="확실한 안정">확실한 안정</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">비고</div>
+          <textarea id="modal-remark" class="field-input" rows="2"
+            placeholder="비고 사항을 입력하세요" style="resize:none;"></textarea>
+        </div>
+      </div>
+      <div class="px-5 py-4 border-t border-gray-100 flex gap-2 sticky bottom-0 bg-white">
+        <button onclick="UniverNS.closeModal()"
+          class="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition text-sm">
+          취소
+        </button>
+        <button id="modal-save-btn" onclick="UniverNS.saveRow()"
+          class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-xl transition text-sm shadow">
+          💾 저장
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="pref-type-modal" class="modal-bg hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+      <h2 class="text-base font-bold text-gray-800 mb-1">📌 선호전형 설정</h2>
+      <p class="text-xs text-gray-500 mb-5">선호하는 전형 방식을 선택해주세요.</p>
+      <div class="flex flex-col gap-3">
+        <button class="pref-modal-btn w-full py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition" data-value="수시 위주">수시 위주</button>
+        <button class="pref-modal-btn w-full py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition" data-value="정시 위주">정시 위주</button>
+        <button class="pref-modal-btn w-full py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition" data-value="수시와 정시 모두 준비">수시·정시 모두</button>
+      </div>
+    </div>
+  </div>
+  <div id="eligible-type-modal" class="modal-bg hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <h2 class="text-base font-bold text-gray-800">🎯 지원가능전형 설정</h2>
+        <button onclick="UniverNS.closeEligibleTypeModal()"
+          class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none transition">✕</button>
+      </div>
+      <div class="px-5 py-4">
+        <p class="text-xs text-gray-500 mb-4">해당하는 전형을 모두 선택해주세요. (일반전형은 기본 선택)</p>
+        <div id="eligible-type-options" class="flex flex-col gap-3"></div>
+      </div>
+      <div class="px-5 py-4 border-t border-gray-100 flex gap-2 sticky bottom-0 bg-white">
+        <button onclick="UniverNS.closeEligibleTypeModal()"
+          class="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition text-sm">
+          취소
+        </button>
+        <button onclick="UniverNS.saveEligibleType()"
+          class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition text-sm shadow">
+          💾 저장
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="eligible-desc-modal" class="modal-bg hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <h2 class="text-base font-bold text-gray-800">📋 전형 설명</h2>
+        <button onclick="UniverNS.closeEligibleDescModal()"
+          class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none transition">✕</button>
+      </div>
+      <div class="px-5 py-4">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="bg-indigo-50">
+              <th class="px-3 py-2.5 text-left text-xs font-bold text-indigo-700 border border-indigo-100 w-2/5 whitespace-nowrap">전형대상자</th>
+              <th class="px-3 py-2.5 text-left text-xs font-bold text-indigo-700 border border-indigo-100">설명</th>
+            </tr>
+          </thead>
+          <tbody id="eligible-desc-table-body"></tbody>
+        </table>
+      </div>
+      <div class="px-5 py-4 border-t border-gray-100 sticky bottom-0 bg-white">
+        <button onclick="UniverNS.closeEligibleDescModal()"
+          class="w-full border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition text-sm">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="unsaved-warn-modal" class="warn-modal-bg hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="bg-amber-500 px-5 py-3 flex items-center gap-2">
+        <span class="text-2xl">⚠️</span>
+        <span class="text-white font-bold text-sm">저장하지 않은 변경사항</span>
+      </div>
+      <div class="px-6 py-5">
+        <p class="text-gray-800 font-semibold text-sm mb-1">페이지를 이동하시겠습니까?</p>
+        <p class="text-gray-500 text-xs leading-relaxed">입력한 내용이 저장되지 않았습니다.<br>저장하지 않고 이동하면 변경사항이 사라집니다.</p>
+      </div>
+      <div class="px-5 pb-5 flex gap-2">
+        <button id="unsaved-warn-cancel"
+          class="flex-1 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-2.5 rounded-xl transition text-sm">
+          계속 입력
+        </button>
+        <button id="unsaved-warn-confirm"
+          class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition text-sm shadow">
+          저장 없이 이동
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="date-error-modal" class="warn-modal-bg hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="bg-red-500 px-5 py-3 flex items-center gap-2">
+        <span class="text-2xl">❌</span>
+        <span class="text-white font-bold text-sm">날짜 입력 오류</span>
+      </div>
+      <div class="px-6 py-5">
+        <p id="date-error-msg" class="text-gray-800 text-sm leading-relaxed"></p>
+      </div>
+      <div class="px-5 pb-5">
+        <button id="date-error-close"
+          class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl transition text-sm shadow">
+          확인하고 다시 입력
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="drag-confirm-modal" class="warn-modal-bg hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="bg-blue-500 px-5 py-3 flex items-center gap-2">
+        <span class="text-2xl">🔀</span>
+        <span class="text-white font-bold text-sm">순위 변경 확인</span>
+      </div>
+      <div class="px-6 py-5">
+        <p id="drag-confirm-msg" class="text-gray-800 font-semibold text-sm mb-1"></p>
+        <p class="text-gray-500 text-xs leading-relaxed mt-1">변경한 순위를 저장하시겠습니까?</p>
+      </div>
+      <div class="px-5 pb-5 flex gap-2">
+        <button id="drag-confirm-cancel"
+          class="flex-1 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-2.5 rounded-xl transition text-sm">
+          취소
+        </button>
+        <button id="drag-confirm-ok"
+          class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl transition text-sm shadow">
+          저장
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="delete-confirm-modal" class="warn-modal-bg hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="bg-red-500 px-5 py-3 flex items-center gap-2">
+        <span class="text-2xl">🗑️</span>
+        <span class="text-white font-bold text-sm">대학 삭제 확인</span>
+      </div>
+      <div class="px-6 py-5">
+        <p id="delete-confirm-msg" class="text-gray-800 font-semibold text-sm mb-1"></p>
+        <p class="text-gray-500 text-xs leading-relaxed mt-1">삭제하면 해당 대학 정보가 초기화되고,<br>하위 순위가 한 칸씩 올라갑니다.</p>
+      </div>
+      <div class="px-5 pb-5 flex gap-2">
+        <button id="delete-confirm-cancel"
+          class="flex-1 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-semibold py-2.5 rounded-xl transition text-sm">
+          취소
+        </button>
+        <button id="delete-confirm-ok"
+          class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl transition text-sm shadow">
+          삭제
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script>
+    function _pageShowLoading(msg) {
+      document.body.classList.add('navi-loading-active');
+      NaviComponent.showLoading(msg);
+    }
+    function _pageHideLoading() {
+      NaviComponent.hideLoading();
+      document.body.classList.remove('navi-loading-active');
+    }
+    (function() {
+      var _orig = NaviComponent.hideLoading;
+      NaviComponent.hideLoading = function() {
+        _orig.apply(this, arguments);
+        document.body.classList.remove('navi-loading-active');
+      };
+    })();
+  </script>
+  <script>
+  var UniverNS = (function () {
+    'use strict';
+    var DEPLOY_URL = Config.DEPLOY;
+    var GITHUB_URL = Config.GITHUB;
+    var studentId = '';
+    var userName  = '';
+    var univRows = [];
+    var editingOriginalRank = null;
+    var eligibleTypeValue = '';
+    var hasUnsavedChanges = false;
+    var _pendingNavCallback = null;
+    var _sortableInstance = null;
+    var DAY_NAMES = ['일','월','화','수','목','금','토'];
+    var ELIGIBLE_OPTIONS = [
+      { value: '일반전형',          desc: '고등학교 졸업 예정자 및 고등학교 졸업과 동일한 자격을 갖춘 사람' },
+      { value: '기초생활수급자',    desc: '국가에서 생계·의료·주거·교육급여를 받는 수급자로 인정된 가구의 학생. 수급자 증명서가 필요.' },
+      { value: '차상위계층',        desc: '기초생활수급자는 아니지만, 법령상 차상위 자격 확인이 되는 저소득 가구의 학생. 통합사례관리, 의료비, 주거비 등 지원 대상 여부로 구분.' },
+      { value: '한부모가족',        desc: '부모 한 명이 자녀를 양육하는 가정이면서, 한부모가족 지원 대상자로 인정받은 사람. 보건복지부 또는 지자체의 한부모가족 확인서가 필요한 경우가 많음.' },
+      { value: '차차상위계층',      desc: '차상위계층 바로 위 수준이지만, 일부 대학이 별도로 인정하는 경우가 있음. 공식 인정 여부와 기준은 대학·지자체별로 다름.' },
+      { value: '국가보훈대상자',    desc: '국가보훈대상자로 등록된 본인 또는 그 가족. 보훈관계 서류(예: 보훈대상자 증명서)로 확인.' },
+      { value: '독립유공자 후손',   desc: '독립유공자로 인정된 분의 자녀·손자녀 등 후손으로, 관련 유족 자격이 인정된 경우.' },
+      { value: '국가유공자 가족',   desc: '국가유공자(참전유공자, 5·18 관련자 등)로 인정된 사람의 가족. 가족관계증명서 등으로 확인.' },
+      { value: '다자녀가족',        desc: '자녀 수가 3명 이상인 가정을 대상으로 인정하는 대학이 많음. 가족관계증명서로 확인.' },
+      { value: '다문화가족',        desc: '부모 중 한 명 이상이 외국 국적 또는 외국출신 결혼이민자 등으로, 다문화가족 지원대상으로 인정되는 경우가 있음.' },
+      { value: '보호종료아동',      desc: '아동복지시설, 그룹홈, 위탁가정에서 보호를 받다가 보호가 종료된 청년(통상 18세 이상). 보호종료아동 확인서 필요.' },
+      { value: '보육원 퇴소 아동',  desc: '보육원·아동양육시설에서 생활하다 퇴소한 아동. 보호종료나 해당 시설 퇴소 확인서로 확인.' },
+      { value: '농어촌학생',        desc: '농촌·어촌 지역에서 일정 기간(보통 3년 이상) 거주 및 재학한 학생. 농어촌 지역 확인서, 주소·재학 기록으로 확인.' },
+      { value: '서해 5도 학생',     desc: '백령도, 연평도, 대청도, 소청도, 우도 등 서해 5도 지역에 거주·재학한 학생. 해당 지역 주소·학교증명서 필요.' },
+      { value: '지역인재',          desc: '특정 지역 고등학교를 졸업(또는 재학)하고, 해당 지역에 일정 기간 거주한 학생. 대학·지자체별 거주·재학 기간 기준이 다름.' },
+      { value: '장애인',            desc: '「장애인복지법」에 따른 장애인등록증이 있는 사람. 장애등록증 사본 제출.' },
+      { value: '특수교육대상자',    desc: '장애·발달 특성 등으로 특수교육을 받은 학생. 특수교육대상자 확인서 또는 학교 추천서 등 필요.' },
+      { value: '특성화고 졸업자',   desc: '일반고가 아닌 특성화고를 졸업한 학생. 일반적으로 직업계고 졸업장을 통해 확인.' },
+      { value: '마이스터고 졸업자', desc: '산업맞춤형 인재 양성목적 마이스터고를 졸업한 학생. 학교 유형이 명확히 구분됨.' },
+      { value: '3년 이상 재직자',   desc: '고등학교 졸업 후 3년 이상 근속한 근로자. 재직증명서·경력증명서로 확인.' },
+      { value: '고졸 후 취업자',    desc: '고교 졸업 후 바로 취업해 일정 기간 근무한 사람. 재직·경력 증빙 필요.' },
+      { value: '만학도',            desc: '성인 학습자로, 성인취업자, 직장인, 재수·삼수 이상 등 늦게 대학에 진학하는 경우를 포함. 나이·학력 배경에 따라 다름.' },
+      { value: '평생학습자',        desc: '성인 학습자, 재교육·전환학습을 하는 사람. 일부 대학은 성인학습경험·교육 이수 실적을 요구.' },
+      { value: '검정고시 출신자',   desc: '고교 졸업을 위해 검정고시를 합격한 사람. 검정고시 합격증·성적표로 확인.' },
+      { value: '학교 밖 청소년',    desc: '정규 학교에 재학하지 않는 청소년(자퇴·미진학 등). 일부 대학은 학교 밖 청소년 지원 프로그램 연계자로 인정.' },
+      { value: '재외국민',          desc: '해외에 거주하면서 일정 요건을 충족한 한국 국적자 및 그 자녀. 국적·거주 기간 등 요건이 필요.' },
+      { value: '외국인',            desc: '한국 국적이 아닌 외국 시민. 외국인 전형에서 재학·거주 기간, 성적 기준 등을 별도로 정함.' },
+      { value: '해외고 졸업자',     desc: '해외에 있는 고등학교를 졸업한 학생. 일반적으로 해외 고등학교 졸업장과 성적표 제출.' },
+      { value: '국제학교 출신자',   desc: '국제학교에서 교육과정을 이수한 학생. 학교 인증·교과과정 인정 여부가 중요.' },
+      { value: '학교장추천',        desc: '고교 교장이 공식적으로 추천하는 학생. 대학별 학교장추천서 양식과 제출 절차에 따라 다름.' },
+      { value: '봉사자',            desc: '일정 기간 동안 봉사활동을 많이 수행한 학생. 봉사활동확인서·증빙서류로 확인.' },
+      { value: '선·효행자',         desc: '효행, 선행, 모범적인 생활 태도를 가진 학생. 학교·지자체·단체의 추천서 등이 필요.' },
+      { value: '종교인재',          desc: '특정 종교계 대학이나 관련 학과에서 선발하는 종교인 후보자. 종교단체 추천 및 교적 증빙 필요.' },
+      { value: '예체능 재능 보유자', desc: '음악, 미술, 체육 등 예체능 분야 재능이 뛰어난 학생. 실기·포트폴리오·대회 수상 등으로 확인.' }
+    ];
+    var ELIGIBLE_TYPE_OPTIONS = [
+      { value: '일반전형(기본)',                      desc: '고등학교 졸업(예정)자 및 동일한 자격이 있는 사람' },
+      { value: '기회균형전형 (사회통합/배려)',        desc: '기초생활수급자, 차상위계층, 차차상위계층, 한부모가족, 다자녀가족, 다문화가족, 보호종료아동(자립준비청년), 보육원 퇴소 아동, 국가보훈대상자, 독립유공자 후손, 국가유공자 가족' },
+      { value: '지역인재 및 지역균형전형',            desc: '지역인재전형: 해당 지역 소재 고교 졸업자 / 지역균형전형: 수도권 대학들이 지역별 균형을 위해 선발 (주로 학교장 추천 필요)' },
+      { value: '특수 지역',                           desc: '농어촌학생, 서해 5도 학생' },
+      { value: '고등교육 소외계층 및 신분별 전형',   desc: '장애인 등: 장애인, 특수교육대상자' },
+      { value: '추천자 및 인성 전형',                 desc: '학교장추천' },
+      { value: '가치/봉사',                           desc: '봉사자, 선·효행자, 종교인재' },
+      { value: '글로벌 및 외국인 전형',               desc: '재외국민, 외국인, 해외고 졸업자, 국제학교 출신자' },
+      { value: '특기자 및 실기 전형',                 desc: '예체능 재능 보유자, 실기 위주 전형' },
+      { value: '검정고시/학교 밖',                    desc: '검정고시 출신자, 학교 밖 청소년' },
+      { value: '선취업 후학습 및 만학도 전형', desc: '특성화고 졸업자, 마이스터고 졸업자, 3년 이상 재직자, 고졸 후 취업자' },
+      { value: '연령/학습',                           desc: '만학도, 평생학습자' }
+    ];
+    async function _callGetAPI(action, params) {
+      params = params || {};
+      var url = new URL(DEPLOY_URL);
+      url.searchParams.set('action', action);
+      for (var key in params) {
+        if (params.hasOwnProperty(key)) url.searchParams.set(key, params[key]);
+      }
+      var resp = await fetch(url.toString());
+      if (!resp.ok) throw new Error('서버 응답 오류: ' + resp.status);
+      return await resp.json();
+    }
+    async function _callPostAPI(action, payload) {
+      payload = payload || {};
+      payload.action = action;
+      var resp = await fetch(DEPLOY_URL, {
+        method : 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body   : JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error('서버 응답 오류: ' + resp.status);
+      return await resp.json();
+    }
+    function init() {
+      var params = new URLSearchParams(window.location.search);
+      studentId = params.get('studentId') || '';
+      userName  = params.get('name')      || '';
+      var navInfo = document.getElementById('nav-user-info');
+      if (navInfo) navInfo.textContent = userName ? (userName + ' 학생') : '';
+      _bindDatePreviewEvents();
+      document.getElementById('date-error-close').addEventListener('click', function() {
+        document.getElementById('date-error-modal').classList.add('hidden');
+      });
+      _loadData();
+    }
+    function _bindDatePreviewEvents() {
+      var fields = [
+        { y: 'modal-interview-start-y', m: 'modal-interview-start-m', d: 'modal-interview-start-d', preview: 'modal-interview-start-preview' },
+        { y: 'modal-interview-end-y',   m: 'modal-interview-end-m',   d: 'modal-interview-end-d',   preview: 'modal-interview-end-preview' },
+        { y: 'modal-practical-start-y', m: 'modal-practical-start-m', d: 'modal-practical-start-d', preview: 'modal-practical-start-preview' },
+        { y: 'modal-practical-end-y',   m: 'modal-practical-end-m',   d: 'modal-practical-end-d',   preview: 'modal-practical-end-preview' }
+      ];
+      fields.forEach(function(f) {
+        ['y','m','d'].forEach(function(k) {
+          var el = document.getElementById(f[k]);
+          if (el) {
+            el.addEventListener('input', function() {
+              _updateDatePreview(f.y, f.m, f.d, f.preview);
+            });
+          }
+        });
+      });
+    }
+    function _updateDatePreview(yId, mId, dId, previewId) {
+      var y = parseInt(document.getElementById(yId).value, 10);
+      var m = parseInt(document.getElementById(mId).value, 10);
+      var d = parseInt(document.getElementById(dId).value, 10);
+      var el = document.getElementById(previewId);
+      if (isNaN(y) || isNaN(m) || isNaN(d) || !y || !m || !d) {
+        el.textContent = '';
+        return;
+      }
+      if (m < 1 || m > 12 || d < 1 || d > 31) {
+        el.textContent = '❌ 범위오류';
+        el.style.color = '#ef4444';
+        return;
+      }
+      try {
+        var date = new Date(y, m - 1, d);
+        if (date.getMonth() !== m - 1 || date.getDate() !== d) {
+          el.textContent = '❌ 유효하지 않은 날짜';
+          el.style.color = '#ef4444';
+          return;
+        }
+        var dayName = DAY_NAMES[date.getDay()];
+        var yy = String(y).slice(-2);
+        var mm = String(m).padStart(2, '0');
+        var dd = String(d).padStart(2, '0');
+        el.textContent = yy + '년 ' + mm + '월 ' + dd + '일(' + dayName + ')';
+        el.style.color = '#2563eb';
+      } catch(e) {
+        el.textContent = '';
+      }
+    }
+    function _formatDate(y, m, d) {
+      if (!y || !m || !d) return '';
+      var date = new Date(y, m - 1, d);
+      if (isNaN(date.getTime()) || date.getMonth() !== m - 1 || date.getDate() !== d) return '';
+      var dayName = DAY_NAMES[date.getDay()];
+      var yy = String(y);
+      var mm = String(m).padStart(2, '0');
+      var dd = String(d).padStart(2, '0');
+      return yy + '년 ' + mm + '월 ' + dd + '일(' + dayName + ')';
+    }
+    function _parseDateStr(str) {
+      if (!str) return { y: '', m: '', d: '' };
+      var match = str.match(/(\d{2,4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+      if (!match) return { y: '', m: '', d: '' };
+      var y = parseInt(match[1], 10);
+      if (y < 100) y += 2000;
+      return { y: y, m: parseInt(match[2], 10), d: parseInt(match[3], 10) };
+    }
+    function _validateDates() {
+      var interviewVal = _getSegBtn('interview-group');
+      var practicalVal = _getSegBtn('practical-group');
+      if (interviewVal === '유') {
+        var isy = parseInt(document.getElementById('modal-interview-start-y').value, 10);
+        var ism = parseInt(document.getElementById('modal-interview-start-m').value, 10);
+        var isd = parseInt(document.getElementById('modal-interview-start-d').value, 10);
+        var iey = parseInt(document.getElementById('modal-interview-end-y').value, 10);
+        var iem = parseInt(document.getElementById('modal-interview-end-m').value, 10);
+        var ied = parseInt(document.getElementById('modal-interview-end-d').value, 10);
+        var startFilled = !isNaN(isy) && !isNaN(ism) && !isNaN(isd) && isy && ism && isd;
+        var endFilled   = !isNaN(iey) && !isNaN(iem) && !isNaN(ied) && iey && iem && ied;
+        if (startFilled) {
+          if (ism < 1 || ism > 12) return '면접 시작일: 월은 1~12 범위여야 합니다.';
+          if (isd < 1 || isd > 31) return '면접 시작일: 일은 1~31 범위여야 합니다.';
+          var startDate = new Date(isy, ism - 1, isd);
+          if (startDate.getMonth() !== ism - 1 || startDate.getDate() !== isd) return '면접 시작일이 유효하지 않습니다. (예: 2월 30일 불가)';
+        }
+        if (endFilled) {
+          if (iem < 1 || iem > 12) return '면접 종료일: 월은 1~12 범위여야 합니다.';
+          if (ied < 1 || ied > 31) return '면접 종료일: 일은 1~31 범위여야 합니다.';
+          var endDate = new Date(iey, iem - 1, ied);
+          if (endDate.getMonth() !== iem - 1 || endDate.getDate() !== ied) return '면접 종료일이 유효하지 않습니다. (예: 2월 30일 불가)';
+        }
+        if (startFilled && endFilled) {
+          var sd = new Date(isy, ism - 1, isd);
+          var ed = new Date(iey, iem - 1, ied);
+          if (sd > ed) return '면접 시작일이 종료일보다 늦습니다.\n시작일은 종료일보다 앞이어야 합니다.';
+        }
+      }
+      if (practicalVal === '유') {
+        var psy = parseInt(document.getElementById('modal-practical-start-y').value, 10);
+        var psm = parseInt(document.getElementById('modal-practical-start-m').value, 10);
+        var psd = parseInt(document.getElementById('modal-practical-start-d').value, 10);
+        var pey = parseInt(document.getElementById('modal-practical-end-y').value, 10);
+        var pem = parseInt(document.getElementById('modal-practical-end-m').value, 10);
+        var ped = parseInt(document.getElementById('modal-practical-end-d').value, 10);
+        var pStartFilled = !isNaN(psy) && !isNaN(psm) && !isNaN(psd) && psy && psm && psd;
+        var pEndFilled   = !isNaN(pey) && !isNaN(pem) && !isNaN(ped) && pey && pem && ped;
+        if (pStartFilled) {
+          if (psm < 1 || psm > 12) return '실기 시작일: 월은 1~12 범위여야 합니다.';
+          if (psd < 1 || psd > 31) return '실기 시작일: 일은 1~31 범위여야 합니다.';
+          var pStartDate = new Date(psy, psm - 1, psd);
+          if (pStartDate.getMonth() !== psm - 1 || pStartDate.getDate() !== psd) return '실기 시작일이 유효하지 않습니다. (예: 2월 30일 불가)';
+        }
+        if (pEndFilled) {
+          if (pem < 1 || pem > 12) return '실기 종료일: 월은 1~12 범위여야 합니다.';
+          if (ped < 1 || ped > 31) return '실기 종료일: 일은 1~31 범위여야 합니다.';
+          var pEndDate = new Date(pey, pem - 1, ped);
+          if (pEndDate.getMonth() !== pem - 1 || pEndDate.getDate() !== ped) return '실기 종료일이 유효하지 않습니다. (예: 2월 30일 불가)';
+        }
+        if (pStartFilled && pEndFilled) {
+          var pSd = new Date(psy, psm - 1, psd);
+          var pEd = new Date(pey, pem - 1, ped);
+          if (pSd > pEd) return '실기 시작일이 종료일보다 늦습니다.\n시작일은 종료일보다 앞이어야 합니다.';
+        }
+      }
+      return null; 
+    }
+    function _showDateError(msg) {
+      document.getElementById('date-error-msg').textContent = msg;
+      document.getElementById('date-error-modal').classList.remove('hidden');
+    }
+    async function _loadData() {
+      _pageShowLoading('불러오는 중입니다...');
+      try {
+        var result = await _callGetAPI('univGetStudentData', {
+          studentId: studentId,
+          name     : userName
+        });
+        if (result && result.success && result.data && result.data.data) {
+          var d = result.data.data;
+          univRows = d.rows || [];
+          _restorePrefType(d.prefType || '');
+          if (!d.prefType) { _openPrefTypeModal(); }
+          eligibleTypeValue = d.eligibleType || '';
+          _renderEligibleTypeDisplay();
+          if (!eligibleTypeValue) { _openEligibleTypeModal(); }
+        } else {
+          NaviComponent.showAlert('데이터 로드 실패: ' + ((result && result.message) || ''), null, { icon: '⚠️' });
+        }
+      } catch (e) {
+        NaviComponent.showAlert('오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
+      }
+      _pageHideLoading();
+      _renderAll();
+    }
+    async function _reloadData() {
+      try {
+        var result = await _callGetAPI('univGetStudentData', {
+          studentId: studentId,
+          name     : userName
+        });
+        if (result && result.success && result.data && result.data.data) {
+          var d = result.data.data;
+          univRows = d.rows || [];
+          _restorePrefType(d.prefType || '');
+          eligibleTypeValue = d.eligibleType || '';
+          _renderEligibleTypeDisplay();
+        }
+      } catch (e) {
+        NaviComponent.showAlert('오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
+      }
+      _renderAll();
+    }
+    function _restorePrefType(prefType) {
+      if (!prefType) return;
+      var btns = document.querySelectorAll('#pref-type-group .seg-btn');
+      btns.forEach(function (btn) {
+        btn.classList.toggle('selected', btn.dataset.value === prefType);
+      });
+    }
+    function _renderAll() {
+      document.getElementById('skeleton-ui').classList.add('hidden');
+      document.getElementById('main-content').classList.remove('hidden');
+      var sorted = univRows.slice().sort(function (a, b) { return a.rank - b.rank; });
+      _renderCardsSortable(sorted);
+    }
+    function _renderCardsSortable(sorted) {
+      var container = document.getElementById('univ-card-sortable');
+      container.innerHTML = '';
+      var slots = [];
+      for (var i = 1; i <= 10; i++) {
+        var found = null;
+        for (var j = 0; j < sorted.length; j++) {
+          if (sorted[j].rank === i) { found = sorted[j]; break; }
+        }
+        slots.push(found || { rank: i, univ: '', admsType: '', admsKind: '', dept: '',
+                              quota: '', csatMin: '', selType: '', interview: '', practical: '',
+                              interviewRegion: '', interviewStart: '', interviewEnd: '',
+                              practicalRegion: '', practicalStart: '', practicalEnd: '',
+                              tendency: '', remark: '' });
+      }
+      slots.forEach(function(row) {
+        container.appendChild(_buildCard(row));
+      });
+      if (_sortableInstance) { _sortableInstance.destroy(); }
+      _sortableInstance = Sortable.create(container, {
+        animation: 180,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        handle: '.card-drag-overlay',
+        filter: '.card-btn-group, .card-edit-btn, .card-delete-btn',
+        preventOnFilter: false,
+        onEnd: function(evt) {
+          _onDragEnd(evt);
+        }
+      });
+    }
+    function _buildCard(row) {
+      var div = document.createElement('div');
+      div.className = 'univ-card' + (!row.univ ? ' univ-card-empty' : '');
+      div.dataset.rank = row.rank;
+      var hasData = row.univ || row.admsType || row.dept;
+      var rankClass = 'rank-badge';
+      if (row.rank === 1) rankClass += ' rank-badge-1';
+      else if (row.rank === 2) rankClass += ' rank-badge-2';
+      else if (row.rank === 3) rankClass += ' rank-badge-3';
+      var csatDisplay = row.csatMin || '';
+      if (csatDisplay && csatDisplay !== '무') csatDisplay = '유';
+      var tendencyBadgeClass = 'badge-gray';
+      var t = row.tendency || '';
+      if (t === '과도한 상향') tendencyBadgeClass = 'badge-red';
+      else if (t === '상향') tendencyBadgeClass = 'badge-orange';
+      else if (t === '적정') tendencyBadgeClass = 'badge-green';
+      else if (t === '하향') tendencyBadgeClass = 'badge-blue';
+      else if (t === '확실한 안정') tendencyBadgeClass = 'badge-indigo';
+      var html = '<div style="display:flex;align-items:flex-start;gap:10px;padding-right:120px;pointer-events:none;">';
+      html += '<span class="card-drag-handle" style="pointer-events:auto;" title="드래그하여 순위 변경">⠿</span>';
+      html += '<span class="' + rankClass + '">' + row.rank + '순위</span>';
+      html += '<div style="flex:1;min-width:0;">';
+      if (!row.univ) {
+        html += '<p style="color:#9ca3af;font-size:0.85rem;font-weight:500;margin-bottom:2px;">대학명 미입력</p>';
+        html += '<p style="color:#d1d5db;font-size:0.75rem;">클릭하여 대학 정보를 입력하세요</p>';
+      } else {
+        var deptText = row.dept ? ' ' + _esc(row.dept) : '';
+        html += '<p style="font-weight:700;font-size:0.95rem;color:#111827;margin-bottom:6px;">' + _esc(row.univ) + deptText + '</p>';
+        html += '<div class="card-info-row">';
+        if (row.admsType) html += '<span class="card-badge badge-blue">📚 ' + _esc(row.admsType) + '</span>';
+        if (row.admsKind) html += '<span class="card-badge badge-purple">🏷 ' + _esc(row.admsKind) + '</span>';
+        if (row.quota)    html += '<span class="card-badge badge-gray">👥 모집인원 ' + _esc(row.quota) + '명</span>';
+        html += '</div>';
+        html += '<div class="card-info-row" style="margin-top:4px;">';
+        if (csatDisplay) {
+          var csatClass = csatDisplay === '무' ? 'badge-gray' : 'badge-orange';
+          var csatLabel = csatDisplay === '무' ? '수능최저 무' : '수능최저 유';
+          if (row.csatMin && row.csatMin !== '무' && row.csatMin !== '유') {
+            csatLabel = '수능최저: ' + row.csatMin;
+          }
+          html += '<span class="card-badge ' + csatClass + '">📋 ' + _esc(csatLabel) + '</span>';
+        }
+        if (row.selType)  html += '<span class="card-badge badge-gray">🔀 ' + _esc(row.selType) + '</span>';
+        if (row.interview === '유') html += '<span class="card-badge badge-blue">🗣 면접 있음</span>';
+        if (row.practical === '유') html += '<span class="card-badge badge-purple">🎨 실기 있음</span>';
+        if (row.tendency) html += '<span class="card-badge ' + tendencyBadgeClass + '">📊 ' + _esc(row.tendency) + '</span>';
+        html += '</div>';
+        var hasInterviewDetail = row.interview === '유' && (row.interviewRegion || row.interviewStart || row.interviewEnd);
+        if (hasInterviewDetail) {
+          html += '<div class="card-section-divider"></div>';
+          html += '<div class="card-date-row">';
+          html += '<span class="card-date-label">🗣 면접</span>';
+          if (row.interviewRegion) html += '<span class="card-date-item"><span style="color:#6b7280;">지역:</span> ' + _esc(row.interviewRegion) + '</span>';
+          if (row.interviewStart)  html += '<span class="card-date-item"><span style="color:#6b7280;">시작:</span> ' + _esc(row.interviewStart) + '</span>';
+          if (row.interviewEnd)    html += '<span class="card-date-item"><span style="color:#6b7280;">종료:</span> ' + _esc(row.interviewEnd) + '</span>';
+          html += '</div>';
+        }
+        var hasPracticalDetail = row.practical === '유' && (row.practicalRegion || row.practicalStart || row.practicalEnd);
+        if (hasPracticalDetail) {
+          html += '<div class="card-section-divider"></div>';
+          html += '<div class="card-date-row">';
+          html += '<span class="card-date-label">🎨 실기</span>';
+          if (row.practicalRegion) html += '<span class="card-date-item"><span style="color:#6b7280;">지역:</span> ' + _esc(row.practicalRegion) + '</span>';
+          if (row.practicalStart)  html += '<span class="card-date-item"><span style="color:#6b7280;">시작:</span> ' + _esc(row.practicalStart) + '</span>';
+          if (row.practicalEnd)    html += '<span class="card-date-item"><span style="color:#6b7280;">종료:</span> ' + _esc(row.practicalEnd) + '</span>';
+          html += '</div>';
+        }
+        if (row.remark && row.remark.trim()) {
+          html += '<div class="card-remark"><span class="card-remark-label">📝 비고</span><span>' + _esc(row.remark) + '</span></div>';
+        }
+      }
+      html += '</div></div>'; 
+      div.innerHTML = html;
+      var btnGroup = document.createElement('div');
+      btnGroup.className = 'card-btn-group';
+      var editBtn = document.createElement('button');
+      editBtn.className = 'card-edit-btn';
+      editBtn.textContent = '✏️ 수정';
+      editBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+      editBtn.addEventListener('click',     function(e) { e.stopPropagation(); UniverNS.openModal(row.rank); });
+      btnGroup.appendChild(editBtn);
+      if (hasData) {
+        var delBtn = document.createElement('button');
+        delBtn.className = 'card-delete-btn';
+        delBtn.textContent = '🗑️ 삭제';
+        delBtn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+        delBtn.addEventListener('click',     function(e) { e.stopPropagation(); UniverNS.deleteCard(row.rank); });
+        btnGroup.appendChild(delBtn);
+      }
+      div.appendChild(btnGroup);
+      var dragOverlay = document.createElement('button');
+      dragOverlay.className = 'card-drag-overlay';
+      dragOverlay.setAttribute('aria-label', '드래그하여 순위 변경');
+      dragOverlay.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+      dragOverlay.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!row.univ) { openModal(row.rank); }
+      });
+      div.appendChild(dragOverlay);
+      div.addEventListener('click', function(e) {
+        if (e.target.closest('.card-btn-group') || e.target.closest('.card-drag-handle') || e.target.closest('.card-drag-overlay')) return;
+        if (!row.univ) {
+          openModal(row.rank);
+          return;
+        }
+        var handle = div.querySelector('.card-drag-handle');
+        if (handle) {
+          handle.style.background = '#e0e7ff';
+          handle.style.color = '#3730a3';
+          setTimeout(function() {
+            handle.style.background = '';
+            handle.style.color = '';
+          }, 600);
+        }
+      });
+      return div;
+    }
+function _onDragEnd(evt) {
+      if (evt.oldIndex === evt.newIndex) return;
+      var container = document.getElementById('univ-card-sortable');
+      var cards = container.querySelectorAll('.univ-card');
+      var draggedRank = parseInt(cards[evt.oldIndex].dataset.rank, 10);
+      var targetRank  = parseInt(cards[evt.newIndex].dataset.rank, 10);
+      var draggedRow = univRows.find(function(r) { return r.rank === draggedRank; });
+      var targetRow  = univRows.find(function(r) { return r.rank === targetRank; });
+      var draggedHasData = draggedRow && (draggedRow.univ || draggedRow.admsType || draggedRow.dept || draggedRow.admsKind);
+      var targetHasData  = targetRow  && (targetRow.univ  || targetRow.admsType  || targetRow.dept  || targetRow.admsKind);
+      if (!draggedHasData || !targetHasData) {
+        var allCards = Array.from(container.querySelectorAll('.univ-card'));
+        if (evt.oldIndex < evt.newIndex) {
+          container.insertBefore(allCards[evt.newIndex], allCards[evt.oldIndex]);
+        } else {
+          container.insertBefore(allCards[evt.newIndex], allCards[evt.oldIndex].nextSibling);
+        }
+        NaviComponent.showAlert('데이터가 없는 빈 카드와는 순위를 교체할 수 없습니다.', null, { icon: '⚠️' });
+        return;
+      }
+      var newRows = [];
+      cards.forEach(function(card, idx) {
+        var oldRank = parseInt(card.dataset.rank, 10);
+        for (var i = 0; i < univRows.length; i++) {
+          if (univRows[i].rank === oldRank) {
+            var copy = JSON.parse(JSON.stringify(univRows[i]));
+            copy.rank = idx + 1;
+            newRows.push(copy);
+            break;
+          }
+        }
+      });
+      var draggedName = draggedRow.univ || (draggedRank + '위');
+      var targetName  = targetRow.univ  || (targetRank  + '위');
+      document.getElementById('drag-confirm-msg').textContent =
+        draggedName + ' (' + draggedRank + '위) → ' + targetRank + '위로 변경';
+      var modal = document.getElementById('drag-confirm-modal');
+      modal.classList.remove('hidden');
+      var okBtn     = document.getElementById('drag-confirm-ok');
+      var cancelBtn = document.getElementById('drag-confirm-cancel');
+      var newOkBtn     = okBtn.cloneNode(true);
+      var newCancelBtn = cancelBtn.cloneNode(true);
+      okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+      cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+      newOkBtn.addEventListener('click', function() {
+        modal.classList.add('hidden');
+        univRows = newRows;
+        cards.forEach(function(card, idx) {
+          card.dataset.rank = idx + 1;
+        });
+        _saveDragOrder(newRows);
+      });
+      newCancelBtn.addEventListener('click', function() {
+        modal.classList.add('hidden');
+        var allCards = Array.from(container.querySelectorAll('.univ-card'));
+        if (evt.oldIndex < evt.newIndex) {
+          container.insertBefore(allCards[evt.newIndex], allCards[evt.oldIndex]);
+        } else {
+          container.insertBefore(allCards[evt.newIndex], allCards[evt.oldIndex].nextSibling);
+        }
+      });
+    }
+async function _saveDragOrder(newRows) {
+      var toSave = newRows.filter(function(r) {
+        return r.univ || r.admsType || r.dept || r.admsKind;
+      });
+      if (toSave.length === 0) {
+        NaviComponent.showAlert('저장이 완료되었습니다.');
+        await _reloadData();
+        return;
+      }
+      _pageShowLoading('저장 중입니다...');
+      var successCount = 0;
+      var failCount    = 0;
+      try {
+        for (var i = 0; i < toSave.length; i++) {
+          var r = toSave[i];
+          try {
+            var result = await _callPostAPI('univSaveRow', {
+              studentId       : studentId,
+              originalRank    : r.rank,
+              rank            : r.rank,
+              univ            : r.univ            || '',
+              admsType        : r.admsType        || '',
+              admsKind        : r.admsKind        || '',
+              dept            : r.dept            || '',
+              quota           : r.quota           || '',
+              csatMin         : r.csatMin         || '',
+              selType         : r.selType         || '',
+              interview       : r.interview       || '',
+              interviewRegion : r.interviewRegion || '',
+              interviewStart  : r.interviewStart  || '',
+              interviewEnd    : r.interviewEnd    || '',
+              practical       : r.practical       || '',
+              practicalRegion : r.practicalRegion || '',
+              practicalStart  : r.practicalStart  || '',
+              practicalEnd    : r.practicalEnd    || '',
+              tendency        : r.tendency        || '',
+              remark          : r.remark          || ''
+            });
+            if (result && result.success) successCount++;
+            else failCount++;
+          } catch(e2) {
+            failCount++;
+          }
+        }
+        _pageHideLoading();
+        if (failCount === 0) {
+          NaviComponent.showAlert('저장이 완료되었습니다.');
+        } else if (successCount > 0) {
+          NaviComponent.showAlert('일부 순위 저장에 실패했습니다. (' + failCount + '건)', null, { icon: '⚠️' });
+        } else {
+          NaviComponent.showAlert('순위 저장에 실패했습니다.', null, { icon: '⚠️' });
+        }
+      } catch(e) {
+        _pageHideLoading();
+        NaviComponent.showAlert('오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
+      }
+      await _reloadData();
+    }
+    function _csatBadge(row) {
+      var v = row.csatMin || '';
+      if (v === '무') {
+        return '<span class="inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-500">무</span>';
+      }
+      if (v && v !== '무') {
+        return '<span class="inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-700">' + _esc(v) + '</span>';
+      }
+      return '';
+    }
+    function _ynBadge(v) {
+      if (v === '유') return '<span class="inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">유</span>';
+      if (v === '무') return '<span class="inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-500">무</span>';
+      return '';
+    }
+    function _esc(str) {
+      if (typeof str !== 'string') return str;
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function setPrefType(btn) {
+      document.querySelectorAll('#pref-type-group .seg-btn').forEach(function (b) {
+        b.classList.remove('selected');
+      });
+      btn.classList.add('selected');
+    }
+    async function savePrefType() {
+      var selected = document.querySelector('#pref-type-group .seg-btn.selected');
+      if (!selected) { NaviComponent.showAlert('선호전형을 선택해주세요.'); return; }
+      var prefType = selected.dataset.value;
+      try {
+        _pageShowLoading('저장 중입니다...');
+        var result = await _callPostAPI('univSavePrefType', {
+          studentId: studentId,
+          prefType : prefType
+        });
+        if (result && result.success) {
+          _pageHideLoading();
+          NaviComponent.showAlert(result.message || '저장이 완료되었습니다.');
+        } else {
+          _pageHideLoading();
+          NaviComponent.showAlert('저장 실패: ' + (result.message || ''), null, { icon: '⚠️' });
+        }
+      } catch (e) {
+        _pageHideLoading();
+        NaviComponent.showAlert('오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
+      }
+    }
+    function _renderEligibleTypeDisplay() {
+      var el = document.getElementById('eligible-type-display');
+      if (el) el.textContent = eligibleTypeValue || '(미설정)';
+    }
+    function _openEligibleTypeModal() {
+      var container = document.getElementById('eligible-type-options');
+      container.innerHTML = '';
+      var selected = eligibleTypeValue
+        ? eligibleTypeValue.split(',').map(function(s){ return s.trim(); })
+        : ['일반전형(기본)'];
+      if (selected.indexOf('일반전형(기본)') === -1) selected.unshift('일반전형(기본)');
+      ELIGIBLE_TYPE_OPTIONS.forEach(function(opt) {
+        var isChecked = selected.indexOf(opt.value) !== -1;
+        var isFixed   = opt.value === '일반전형(기본)';
+        var wrapper = document.createElement('label');
+        wrapper.className = 'flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition ' +
+          (isChecked ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50');
+        var checkbox = document.createElement('input');
+        checkbox.type    = 'checkbox';
+        checkbox.value   = opt.value;
+        checkbox.checked = isChecked;
+        checkbox.disabled = isFixed;
+        checkbox.className = 'mt-0.5 accent-blue-600 w-4 h-4 flex-shrink-0';
+        checkbox.addEventListener('change', function() {
+          wrapper.className = 'flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition ' +
+            (this.checked ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50');
+        });
+        var textDiv = document.createElement('div');
+        var nameEl  = document.createElement('p');
+        nameEl.className = 'text-sm font-semibold text-gray-800';
+        nameEl.textContent = opt.value + (isFixed ? ' (기본)' : '');
+        var descEl  = document.createElement('p');
+        descEl.className = 'text-xs text-gray-500 mt-0.5';
+        descEl.textContent = opt.desc;
+        textDiv.appendChild(nameEl);
+        textDiv.appendChild(descEl);
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(textDiv);
+        container.appendChild(wrapper);
+      });
+      document.getElementById('eligible-type-modal').classList.remove('hidden');
+    }
+    function openEligibleTypeModal() { _openEligibleTypeModal(); }
+    function closeEligibleTypeModal() {
+      document.getElementById('eligible-type-modal').classList.add('hidden');
+    }
+    async function saveEligibleType() {
+      var checkboxes = document.querySelectorAll('#eligible-type-options input[type=checkbox]:checked');
+      var selected = [];
+      checkboxes.forEach(function(cb) { selected.push(cb.value); });
+      if (selected.indexOf('일반전형(기본)') === -1) selected.unshift('일반전형(기본)');
+      var value = selected.join(', ');
+      _pageShowLoading('저장 중입니다...');
+      try {
+        var result = await _callPostAPI('univSaveEligibleType', {
+          studentId   : studentId,
+          eligibleType: value
+        });
+        _pageHideLoading();
+        if (result && result.success) {
+          eligibleTypeValue = value;
+          _renderEligibleTypeDisplay();
+          closeEligibleTypeModal();
+          NaviComponent.showAlert(result.message || '저장이 완료되었습니다.');
+        } else {
+          NaviComponent.showAlert('저장 실패: ' + (result.message || ''), null, { icon: '⚠️' });
+        }
+      } catch (e) {
+        _pageHideLoading();
+        NaviComponent.showAlert('오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
+      }
+    }
+    function _openPrefTypeModal() {
+      var modal = document.getElementById('pref-type-modal');
+      modal.classList.remove('hidden');
+      var btns = modal.querySelectorAll('.pref-modal-btn');
+      btns.forEach(function (btn) {
+        btn.onclick = function () { _savePrefTypeFromModal(btn.dataset.value); };
+      });
+    }
+    async function _savePrefTypeFromModal(prefType) {
+      document.getElementById('pref-type-modal').classList.add('hidden');
+      _restorePrefType(prefType);
+      _pageShowLoading('저장 중입니다...');
+      try {
+        var result = await _callPostAPI('univSavePrefType', {
+          studentId: studentId,
+          prefType : prefType
+        });
+        _pageHideLoading();
+        if (result && result.success) {
+          NaviComponent.showAlert('선호전형이 저장되었습니다.');
+        } else {
+          NaviComponent.showAlert('저장 실패: ' + (result.message || ''), null, { icon: '⚠️' });
+        }
+      } catch (e) {
+        _pageHideLoading();
+        NaviComponent.showAlert('오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
+      }
+    }
+    function openModal(rank) {
+      editingOriginalRank = rank;
+      hasUnsavedChanges = false;
+      var row = null;
+      for (var i = 0; i < univRows.length; i++) {
+        if (univRows[i].rank === rank) { row = univRows[i]; break; }
+      }
+      if (!row) row = { rank: rank, univ: '', admsType: '', admsKind: '', dept: '', quota: '',
+                        csatMin: '', csatDetail: '', selType: '', interview: '', practical: '',
+                        interviewRegion: '', interviewStart: '', interviewEnd: '',
+                        practicalRegion: '', practicalStart: '', practicalEnd: '',
+                        tendency: '', remark: '' };
+      document.getElementById('modal-rank-label').textContent = rank;
+      document.getElementById('modal-rank').value  = row.rank;
+      document.getElementById('modal-univ').value  = row.univ || '';
+      document.getElementById('modal-dept').value  = row.dept || '';
+      document.getElementById('modal-quota').value = row.quota || '';
+      document.getElementById('modal-tendency').value = row.tendency || '';
+      document.getElementById('modal-remark').value   = row.remark   || '';
+      var admsTypeSelect = document.getElementById('modal-adms-type');
+      var admsTypeEtc    = document.getElementById('modal-adms-type-etc');
+      var knownAdmsTypes = ['학생부위주(교과)','학생부위주(종합)','논술위주','실기위주'];
+      if (row.admsType && knownAdmsTypes.indexOf(row.admsType) === -1 && row.admsType) {
+        admsTypeSelect.value = '기타';
+        admsTypeEtc.value    = row.admsType.replace(/^기타\(/, '').replace(/\)$/, '');
+        admsTypeEtc.classList.remove('hidden');
+      } else {
+        admsTypeSelect.value = row.admsType || '';
+        admsTypeEtc.value    = '';
+        admsTypeEtc.classList.add('hidden');
+      }
+      var admsKindSelect = document.getElementById('modal-adms-kind');
+      var admsKindEtc    = document.getElementById('modal-adms-kind-etc');
+      var knownAdmsKinds = ['일반학생','지역인재전형','지역균형전형','기회균형','추천자'];
+      if (row.admsKind && knownAdmsKinds.indexOf(row.admsKind) === -1 && row.admsKind) {
+        admsKindSelect.value = '기타';
+        admsKindEtc.value    = row.admsKind.replace(/^기타\(/, '').replace(/\)$/, '');
+        admsKindEtc.classList.remove('hidden');
+      } else {
+        admsKindSelect.value = row.admsKind || '';
+        admsKindEtc.value    = '';
+        admsKindEtc.classList.add('hidden');
+      }
+      var csatRaw = row.csatMin || '';
+      var csatVal = '';
+      var csatDetail = '';
+      if (csatRaw === '무' || csatRaw === '') {
+        csatVal = csatRaw;
+        csatDetail = '';
+      } else {
+        csatVal = '유';
+        csatDetail = csatRaw; 
+      }
+      _setSegBtn('csat-min-group', csatVal);
+      var csatDetailEl = document.getElementById('modal-csat-detail');
+      csatDetailEl.value = csatDetail;
+      csatDetailEl.classList.toggle('hidden', csatVal !== '유');
+      _setSegBtn('sel-type-group',  row.selType   || '');
+      _setSegBtn('interview-group', row.interview || '');
+      var showInterview = row.interview === '유';
+      document.getElementById('interview-detail-section').classList.toggle('hidden', !showInterview);
+      document.getElementById('modal-interview-region').value = row.interviewRegion || '';
+      var iStart = _parseDateStr(row.interviewStart || '');
+      var iEnd   = _parseDateStr(row.interviewEnd || '');
+      document.getElementById('modal-interview-start-y').value = iStart.y || '';
+      document.getElementById('modal-interview-start-m').value = iStart.m || '';
+      document.getElementById('modal-interview-start-d').value = iStart.d || '';
+      document.getElementById('modal-interview-end-y').value   = iEnd.y || '';
+      document.getElementById('modal-interview-end-m').value   = iEnd.m || '';
+      document.getElementById('modal-interview-end-d').value   = iEnd.d || '';
+      _updateDatePreview('modal-interview-start-y','modal-interview-start-m','modal-interview-start-d','modal-interview-start-preview');
+      _updateDatePreview('modal-interview-end-y','modal-interview-end-m','modal-interview-end-d','modal-interview-end-preview');
+      _setSegBtn('practical-group', row.practical || '');
+      var showPractical = row.practical === '유';
+      document.getElementById('practical-detail-section').classList.toggle('hidden', !showPractical);
+      document.getElementById('modal-practical-region').value = row.practicalRegion || '';
+      var pStart = _parseDateStr(row.practicalStart || '');
+      var pEnd   = _parseDateStr(row.practicalEnd || '');
+      document.getElementById('modal-practical-start-y').value = pStart.y || '';
+      document.getElementById('modal-practical-start-m').value = pStart.m || '';
+      document.getElementById('modal-practical-start-d').value = pStart.d || '';
+      document.getElementById('modal-practical-end-y').value   = pEnd.y || '';
+      document.getElementById('modal-practical-end-m').value   = pEnd.m || '';
+      document.getElementById('modal-practical-end-d').value   = pEnd.d || '';
+      _updateDatePreview('modal-practical-start-y','modal-practical-start-m','modal-practical-start-d','modal-practical-start-preview');
+      _updateDatePreview('modal-practical-end-y','modal-practical-end-m','modal-practical-end-d','modal-practical-end-preview');
+      document.getElementById('row-modal').classList.remove('hidden');
+      setTimeout(function() {
+        hasUnsavedChanges = false;
+        var modal = document.getElementById('row-modal');
+        modal.querySelectorAll('input, select, textarea, button.seg-btn').forEach(function(el) {
+          el.addEventListener('change', _markUnsaved);
+          el.addEventListener('input', _markUnsaved);
+          el.addEventListener('click', _markUnsaved);
+        });
+      }, 100);
+    }
+    function _markUnsaved() {
+      hasUnsavedChanges = true;
+    }
+    function closeModal() {
+      if (hasUnsavedChanges) {
+        _showUnsavedWarnModal(function() {
+          _doCloseModal();
+        });
+        return;
+      }
+      _doCloseModal();
+    }
+    function _doCloseModal() {
+      hasUnsavedChanges = false;
+      document.getElementById('row-modal').style.background = '';
+      document.getElementById('row-modal').style.pointerEvents = '';
+      document.getElementById('row-modal').classList.add('hidden');
+      editingOriginalRank = null;
+    }
+    function _showUnsavedWarnModal(onConfirm) {
+      var modal = document.getElementById('unsaved-warn-modal');
+      modal.classList.remove('hidden');
+      var cancelBtn  = document.getElementById('unsaved-warn-cancel');
+      var confirmBtn = document.getElementById('unsaved-warn-confirm');
+      function cleanup() {
+        modal.classList.add('hidden');
+        cancelBtn.removeEventListener('click', onCancel);
+        confirmBtn.removeEventListener('click', onConfirmClick);
+      }
+      function onCancel() { cleanup(); }
+      function onConfirmClick() {
+        cleanup();
+        hasUnsavedChanges = false;
+        if (onConfirm) onConfirm();
+      }
+      cancelBtn.addEventListener('click', onCancel);
+      confirmBtn.addEventListener('click', onConfirmClick);
+    }
+    function _setSegBtn(groupId, value) {
+      var btns = document.querySelectorAll('#' + groupId + ' .seg-btn');
+      btns.forEach(function (b) {
+        b.classList.toggle('selected', b.dataset.value === value);
+      });
+    }
+    function _getSegBtn(groupId) {
+      var sel = document.querySelector('#' + groupId + ' .seg-btn.selected');
+      return sel ? sel.dataset.value : '';
+    }
+    function onAdmsTypeChange() {
+      var val = document.getElementById('modal-adms-type').value;
+      document.getElementById('modal-adms-type-etc').classList.toggle('hidden', val !== '기타');
+    }
+    function onAdmsKindChange() {
+      var val = document.getElementById('modal-adms-kind').value;
+      document.getElementById('modal-adms-kind-etc').classList.toggle('hidden', val !== '기타');
+    }
+    function setCsatMin(btn) {
+      _setSegBtn('csat-min-group', btn.dataset.value);
+      document.getElementById('modal-csat-detail').classList.toggle('hidden', btn.dataset.value !== '유');
+    }
+    function setSelType(btn)   { _setSegBtn('sel-type-group',  btn.dataset.value); }
+    function setInterview(btn) {
+      _setSegBtn('interview-group', btn.dataset.value);
+      var show = btn.dataset.value === '유';
+      document.getElementById('interview-detail-section').classList.toggle('hidden', !show);
+    }
+    function setPractical(btn) {
+      _setSegBtn('practical-group', btn.dataset.value);
+      var show = btn.dataset.value === '유';
+      document.getElementById('practical-detail-section').classList.toggle('hidden', !show);
+    }
+    function openEligibleDescModal() {
+      var tbody = document.getElementById('eligible-desc-table-body');
+      tbody.innerHTML = '';
+      ELIGIBLE_OPTIONS.forEach(function(opt, idx) {
+        var tr = document.createElement('tr');
+        tr.style.background = idx % 2 === 0 ? '#ffffff' : '#f5f7ff';
+        var tdTerm = document.createElement('td');
+        tdTerm.style.cssText = 'padding:0.55rem 0.75rem;border:1px solid #dde3f5;font-weight:700;color:#3730a3;font-size:0.8rem;vertical-align:top;white-space:nowrap;';
+        tdTerm.textContent = opt.value;
+        var tdDesc = document.createElement('td');
+        tdDesc.style.cssText = 'padding:0.55rem 0.75rem;border:1px solid #dde3f5;color:#374151;font-size:0.8rem;line-height:1.6;word-break:keep-all;';
+        tdDesc.textContent = opt.desc;
+        tr.appendChild(tdTerm);
+        tr.appendChild(tdDesc);
+        tbody.appendChild(tr);
+      });
+      document.getElementById('eligible-desc-modal').classList.remove('hidden');
+    }
+    function closeEligibleDescModal() {
+      document.getElementById('eligible-desc-modal').classList.add('hidden');
+    }
+    async function saveRow() {
+      var newRank = Number(document.getElementById('modal-rank').value);
+      if (!newRank) { NaviComponent.showAlert('순위를 선택해주세요.'); return; }
+      var dateError = _validateDates();
+      if (dateError) {
+        _showDateError(dateError);
+        return;
+      }
+      var admsTypeRaw = document.getElementById('modal-adms-type').value;
+      var admsType = admsTypeRaw;
+      if (admsTypeRaw === '기타') {
+        var etcVal = document.getElementById('modal-adms-type-etc').value.trim();
+        admsType = etcVal ? '기타(' + etcVal + ')' : '기타';
+      }
+      var admsKindRaw = document.getElementById('modal-adms-kind').value;
+      var admsKind = admsKindRaw;
+      if (admsKindRaw === '기타') {
+        var etcKindVal = document.getElementById('modal-adms-kind-etc').value.trim();
+        admsKind = etcKindVal ? '기타(' + etcKindVal + ')' : '기타';
+      }
+      var csatMin    = _getSegBtn('csat-min-group');
+      var csatDetail = document.getElementById('modal-csat-detail').value.trim();
+      var interviewVal = _getSegBtn('interview-group');
+      var practicalVal = _getSegBtn('practical-group');
+      var interviewRegion = '';
+      var interviewStart  = '';
+      var interviewEnd    = '';
+      if (interviewVal === '유') {
+        interviewRegion = document.getElementById('modal-interview-region').value.trim();
+        var isy = parseInt(document.getElementById('modal-interview-start-y').value, 10);
+        var ism = parseInt(document.getElementById('modal-interview-start-m').value, 10);
+        var isd = parseInt(document.getElementById('modal-interview-start-d').value, 10);
+        var iey = parseInt(document.getElementById('modal-interview-end-y').value, 10);
+        var iem = parseInt(document.getElementById('modal-interview-end-m').value, 10);
+        var ied = parseInt(document.getElementById('modal-interview-end-d').value, 10);
+        if (isy && ism && isd) interviewStart = _formatDate(isy, ism, isd);
+        if (iey && iem && ied) interviewEnd   = _formatDate(iey, iem, ied);
+      }
+      var practicalRegion = '';
+      var practicalStart  = '';
+      var practicalEnd    = '';
+      if (practicalVal === '유') {
+        practicalRegion = document.getElementById('modal-practical-region').value.trim();
+        var psy = parseInt(document.getElementById('modal-practical-start-y').value, 10);
+        var psm = parseInt(document.getElementById('modal-practical-start-m').value, 10);
+        var psd = parseInt(document.getElementById('modal-practical-start-d').value, 10);
+        var pey = parseInt(document.getElementById('modal-practical-end-y').value, 10);
+        var pem = parseInt(document.getElementById('modal-practical-end-m').value, 10);
+        var ped = parseInt(document.getElementById('modal-practical-end-d').value, 10);
+        if (psy && psm && psd) practicalStart = _formatDate(psy, psm, psd);
+        if (pey && pem && ped) practicalEnd   = _formatDate(pey, pem, ped);
+      }
+      var editedData = {
+        rank            : newRank,
+        univ            : document.getElementById('modal-univ').value.trim(),
+        admsType        : admsType,
+        admsKind        : admsKind,
+        dept            : document.getElementById('modal-dept').value.trim(),
+        quota           : document.getElementById('modal-quota').value.trim(),
+        csatMin         : csatMin === '유' ? csatDetail : csatMin,
+        selType         : _getSegBtn('sel-type-group'),
+        interview       : interviewVal,
+        interviewRegion : interviewRegion,
+        interviewStart  : interviewStart,
+        interviewEnd    : interviewEnd,
+        practical       : practicalVal,
+        practicalRegion : practicalRegion,
+        practicalStart  : practicalStart,
+        practicalEnd    : practicalEnd,
+        tendency        : document.getElementById('modal-tendency').value.trim(),
+        remark          : document.getElementById('modal-remark').value.trim()
+      };
+      var slots = [];
+      for (var s = 1; s <= 10; s++) {
+        var found = null;
+        for (var k = 0; k < univRows.length; k++) {
+          if (univRows[k].rank === s) { found = JSON.parse(JSON.stringify(univRows[k])); break; }
+        }
+        slots.push(found || { rank: s, univ: '', admsType: '', admsKind: '', dept: '',
+                              quota: '', csatMin: '', selType: '', interview: '', practical: '',
+                              interviewRegion: '', interviewStart: '', interviewEnd: '',
+                              practicalRegion: '', practicalStart: '', practicalEnd: '',
+                              tendency: '', remark: '' });
+      }
+      var oldIdx = editingOriginalRank - 1;  
+      var newIdx = newRank - 1;              
+      slots[oldIdx] = editedData;
+      var moved = slots.splice(oldIdx, 1)[0];
+      slots.splice(newIdx, 0, moved);
+      var newRows = slots.map(function(row, idx) {
+        var copy = JSON.parse(JSON.stringify(row));
+        copy.rank = idx + 1;
+        return copy;
+      });
+      univRows = newRows;
+      hasUnsavedChanges = false;
+      _doCloseModal();
+      await _saveDragOrder(newRows);
+    }
+    function deleteCard(rank) {
+      var row = null;
+      for (var i = 0; i < univRows.length; i++) {
+        if (univRows[i].rank === rank) { row = univRows[i]; break; }
+      }
+      var univName = (row && row.univ) ? row.univ : (rank + '순위');
+      document.getElementById('delete-confirm-msg').textContent =
+        '「' + univName + '」를 삭제하시겠습니까?';
+      var modal = document.getElementById('delete-confirm-modal');
+      modal.classList.remove('hidden');
+      var okBtn     = document.getElementById('delete-confirm-ok');
+      var cancelBtn = document.getElementById('delete-confirm-cancel');
+      var newOkBtn     = okBtn.cloneNode(true);
+      var newCancelBtn = cancelBtn.cloneNode(true);
+      okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+      cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+      newCancelBtn.addEventListener('click', function() {
+        modal.classList.add('hidden');
+      });
+      newOkBtn.addEventListener('click', async function() {
+        modal.classList.add('hidden');
+        var dataRows = univRows
+          .filter(function(r) { return r.univ || r.admsType || r.dept || r.admsKind; })
+          .slice()
+          .sort(function(a, b) { return a.rank - b.rank; });
+        var delIdx = -1;
+        for (var i = 0; i < dataRows.length; i++) {
+          if (dataRows[i].rank === rank) { delIdx = i; break; }
+        }
+        if (delIdx === -1) { await _reloadData(); return; }
+        var lastDataRank = dataRows[dataRows.length - 1].rank;
+        _pageShowLoading('삭제 중입니다...');
+        for (var j = delIdx + 1; j < dataRows.length; j++) {
+          var src = dataRows[j];
+          var targetRank = dataRows[j - 1].rank;
+          try {
+            await _callPostAPI('univSaveRow', {
+              studentId       : studentId,
+              originalRank    : targetRank,
+              rank            : targetRank,
+              univ            : src.univ            || '',
+              admsType        : src.admsType        || '',
+              admsKind        : src.admsKind        || '',
+              dept            : src.dept            || '',
+              quota           : src.quota           || '',
+              csatMin         : src.csatMin         || '',
+              selType         : src.selType         || '',
+              interview       : src.interview       || '',
+              interviewRegion : src.interviewRegion || '',
+              interviewStart  : src.interviewStart  || '',
+              interviewEnd    : src.interviewEnd    || '',
+              practical       : src.practical       || '',
+              practicalRegion : src.practicalRegion || '',
+              practicalStart  : src.practicalStart  || '',
+              practicalEnd    : src.practicalEnd    || '',
+              tendency        : src.tendency        || '',
+              remark          : src.remark          || ''
+            });
+          } catch(e2) {  }
+        }
+        try {
+          await _callPostAPI('univSaveRow', {
+            studentId: studentId,
+            originalRank: lastDataRank,
+            rank: lastDataRank,
+            univ: '', admsType: '', admsKind: '', dept: '',
+            quota: '', csatMin: '', selType: '', interview: '',
+            interviewRegion: '', interviewStart: '', interviewEnd: '',
+            practical: '', practicalRegion: '', practicalStart: '', practicalEnd: '',
+            tendency: '', remark: ''
+          });
+        } catch(e2) {  }
+        _pageHideLoading();
+        NaviComponent.showAlert('삭제가 완료되었습니다.');
+        await _reloadData();
+      });
+    }
+    function navigateTo(page) {
+      var doNav = function() {
+        var params = new URLSearchParams({ studentId: studentId, name: userName });
+        switch (page) {
+          case 'schedule':
+            window.location.href = GITHUB_URL + '/firstpage.html?' + params.toString(); break;
+          case 'suneung':
+            window.location.href = GITHUB_URL + '/susel.html?' + params.toString(); break;
+          case 'record':
+            window.location.href = GITHUB_URL + '/record.html?' + params.toString(); break;
+        }
+      };
+      if (hasUnsavedChanges) {
+        _showUnsavedWarnModal(doNav);
+      } else {
+        doNav();
+      }
+    }
+    function doLogout() {
+      var doNav = function() { window.location.href = GITHUB_URL; };
+      if (hasUnsavedChanges) {
+        _showUnsavedWarnModal(doNav);
+      } else {
+        doNav();
+      }
+    }
+    function _showToast(msg, type) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success') + ' show';
+      setTimeout(function () { toast.classList.remove('show'); }, 3000);
+    }
+    return {
+      init           : init,
+      setPrefType    : setPrefType,
+      savePrefType   : savePrefType,
+      openModal      : openModal,
+      closeModal     : closeModal,
+      onAdmsTypeChange: onAdmsTypeChange,
+      onAdmsKindChange: onAdmsKindChange,
+      setCsatMin     : setCsatMin,
+      setSelType     : setSelType,
+      setInterview   : setInterview,
+      setPractical   : setPractical,
+      saveRow        : saveRow,
+      deleteCard     : deleteCard,
+      navigateTo     : navigateTo,
+      doLogout       : doLogout,
+      openEligibleTypeModal : openEligibleTypeModal,
+      closeEligibleTypeModal: closeEligibleTypeModal,
+      saveEligibleType      : saveEligibleType,
+      openEligibleDescModal : openEligibleDescModal,
+      closeEligibleDescModal: closeEligibleDescModal
+    };
+  })();
+  document.addEventListener('DOMContentLoaded', function() {
+    var urlParams = new URLSearchParams(window.location.search);
+    NaviComponent.init({
+      activePage: 'university',
+      userName:   urlParams.get('name')      || '',
+      studentId:  urlParams.get('studentId') || '',
+      onLogout: function() { UniverNS.doLogout(); }
+    });
+    document.body.classList.add('navi-loading-active');
+    UniverNS.init();
+  });
+  </script>
+</body>
+</html>
