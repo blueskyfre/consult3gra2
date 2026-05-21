@@ -29,9 +29,6 @@
       min-height: 100vh;
       margin: 0;
     }
-
-    /* ── 탭 메뉴 ── */
-    /* 탭 영역 전체 배경을 흰색으로 full-width sticky */
     #course-tabs-wrapper {
       background: #fff;
       border-bottom: 2px solid var(--border);
@@ -63,10 +60,7 @@
     }
     .tab-btn:hover  { background: var(--primary-lt); color: var(--primary); }
     .tab-btn.active { background: #fff; color: var(--primary); border-color: var(--primary); font-weight: 700; }
-
-    /* ── 카드 영역 ── */
     #card-area { padding: 24px 16px; max-width: 860px; margin: 0 auto; }
-
     .course-card {
       background: #fff;
       border-radius: 14px;
@@ -75,7 +69,6 @@
       animation: fadeIn .25s ease;
     }
     @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-
     .card-header {
       background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
       color: #fff;
@@ -85,40 +78,31 @@
       letter-spacing: -.3px;
     }
     .card-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
-
-    /* ── 섹션 패널 (카드 내 구역 구분) ── */
     .section-panel {
       border-radius: 10px;
       padding: 14px 16px;
       border: 1.5px solid transparent;
     }
-    /* 공지사항 패널 - 파란 계열 */
     .section-panel--notice {
       background: #eff6ff;
       border-color: #bfdbfe;
     }
-    /* 개인별 공지 패널 - 보라 계열 */
     .section-panel--personal {
       background: #f5f3ff;
       border-color: #ddd6fe;
     }
-    /* 선생님 제공 파일 패널 - 청록 계열 */
     .section-panel--teacher-files {
       background: #ecfdf5;
       border-color: #a7f3d0;
     }
-    /* 내용 입력 패널 - 주황 계열 */
     .section-panel--content {
       background: #fff7ed;
       border-color: #fed7aa;
     }
-    /* 파일 업로드/목록 패널 - 회색 계열 */
     .section-panel--files {
       background: #f8fafc;
       border-color: #e2e8f0;
     }
-
-    /* ── 섹션 타이틀 ── */
     .section-label {
       display: flex;
       align-items: center;
@@ -130,8 +114,6 @@
       letter-spacing: .6px;
       margin-bottom: 6px;
     }
-
-    /* ── 공지사항 박스 ── */
     .notice-box {
       background: var(--primary-lt);
       border-left: 4px solid var(--primary);
@@ -143,8 +125,6 @@
       min-height: 48px;
     }
     .notice-empty { color: var(--text-sub); font-style: italic; }
-
-    /* ── 내용 입력 ── */
     textarea.content-input {
       width: 100%;
       min-height: 120px;
@@ -159,8 +139,6 @@
       outline: none;
     }
     textarea.content-input:focus { border-color: var(--primary); }
-
-    /* ── 버튼 ── */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -182,8 +160,6 @@
     .btn-outline  { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
     .btn-outline:hover  { background: var(--primary-lt); }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
-
-    /* ── 업로드된 파일 목록 ── */
     .file-list { display: flex; flex-direction: column; gap: 8px; }
     .file-item {
       display: flex;
@@ -202,8 +178,6 @@
       flex: 1;
     }
     .file-empty { color: var(--text-sub); font-size: 0.875rem; font-style: italic; }
-
-    /* ── 파일 업로드 영역 ── */
     .upload-zone {
       border: 2px dashed var(--border);
       border-radius: 10px;
@@ -220,8 +194,6 @@
     .upload-zone input[type="file"] { display: none; }
     .upload-zone-text { font-size: 0.875rem; color: var(--text-sub); }
     .upload-zone-text strong { color: var(--primary); }
-
-    /* ── 진행 표시 ── */
     .progress-bar-wrap {
       background: #e2e8f0;
       border-radius: 99px;
@@ -235,8 +207,6 @@
       border-radius: 99px;
       transition: width .3s;
     }
-
-    /* ── Toast 알림 ── */
     #toast-container {
       position: fixed;
       bottom: 24px;
@@ -261,8 +231,6 @@
     .toast.success { background: #166534; }
     .toast.error   { background: #991b1b; }
     @keyframes toastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
-
-    /* ── 모달 ── */
     .modal-backdrop {
       position: fixed; inset: 0;
       background: rgba(0,0,0,.45);
@@ -297,8 +265,6 @@
     }
     .modal-close:hover { background: #e2e8f0; }
     .modal-body { padding: 20px 22px; }
-
-    /* ── 개인별 공지 항목 ── */
     .extra-item {
       margin-bottom: 16px;
     }
@@ -316,8 +282,6 @@
       font-size: 0.9rem;
       white-space: pre-wrap;
     }
-
-    /* ── 로딩 스피너 ── */
     .spinner {
       display: inline-block;
       width: 20px; height: 20px;
@@ -327,16 +291,12 @@
       animation: spin .7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── 빈 상태 ── */
     .empty-state {
       text-align: center;
       padding: 60px 20px;
       color: var(--text-sub);
     }
     .empty-state svg { margin: 0 auto 16px; display: block; }
-
-    /* ── 파일 선택 미리보기 ── */
     .file-preview-box {
       display: flex;
       align-items: center;
@@ -356,8 +316,6 @@
       flex: 1;
     }
     .file-preview-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-    /* ── 바이트 카운터 ── */
     .byte-counter {
       font-size: 0.78rem;
       font-weight: 600;
@@ -366,10 +324,8 @@
       margin-left: 8px;
     }
     .byte-counter.over-limit {
-      color: var(--danger);   /* 초과 시 빨간색으로 변경 */
+      color: var(--danger);   
     }
-
-    /* ── 파일 용량 초과 모달 ── */
     #file-size-modal .modal-box {
       max-width: 400px;
     }
@@ -392,8 +348,6 @@
       color: var(--text-sub);
       margin-bottom: 20px;
     }
-
-    /* ── 반응형 ── */
     @media (max-width: 600px) {
       .card-body { padding: 16px; }
       .card-header { padding: 14px 16px; font-size: .95rem; }
@@ -405,11 +359,7 @@
   </style>
 </head>
 <body>
-
-<!-- 공통 네비게이션 -->
 <div id="shared-nav"></div>
-
-<!-- 탭 메뉴 -->
 <div id="course-tabs-wrapper">
   <div id="course-tabs">
     <div id="tab-loading" style="padding:10px 0;color:var(--text-sub);font-size:.875rem;">
@@ -417,8 +367,6 @@
     </div>
   </div>
 </div>
-
-<!-- 카드 영역 -->
 <div id="card-area">
   <div class="empty-state" id="empty-state" style="display:none;">
     <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -429,8 +377,6 @@
     <p style="font-size:.85rem;margin-top:6px;">담당 선생님께 문의해 주세요.</p>
   </div>
 </div>
-
-<!-- 파일 용량 초과 모달 -->
 <div id="file-size-modal" class="modal-backdrop" style="display:none;">
   <div class="modal-box">
     <div class="modal-header">
@@ -442,7 +388,6 @@
       <div class="file-size-msg" id="file-size-msg">
         선택한 파일이 업로드 가능한 최대 용량을 초과했습니다.
       </div>
-      <!-- ★ 파일 최대 용량 안내 문구 — 제한 변경 시 아래 숫자도 함께 수정 ★ -->
       <div class="file-size-limit-note">업로드 가능한 최대 파일 크기: <strong>10 MB</strong></div>
       <button class="btn btn-primary" onclick="document.getElementById('file-size-modal').style.display='none'" style="width:100%;justify-content:center;">
         확인
@@ -450,11 +395,7 @@
     </div>
   </div>
 </div>
-
-<!-- Toast -->
 <div id="toast-container"></div>
-
-<!-- 개인별 공지사항 모달 -->
 <div id="extra-modal" class="modal-backdrop" style="display:none;">
   <div class="modal-box">
     <div class="modal-header">
@@ -464,29 +405,16 @@
     <div class="modal-body" id="extra-modal-body"></div>
   </div>
 </div>
-
 <script>
-// ============================================================
-// ClassPage 네임스페이스
-// ============================================================
 var ClassPage = (function () {
   'use strict';
-
-  // ── 설정 상수 ──
-
-
-  // ── 상태 ──
   var state = {
     studentId:   '',
     studentName: '',
-    courses:     [],          // [{ teacher, course }, ...]
+    courses:     [],          
     activeIdx:   -1,
-    cardCache:   {}           // key: teacher_course → 카드 데이터 캐시
+    cardCache:   {}           
   };
-
-  // ============================================================
-  // 🔧 유틸
-  // ============================================================
   function _getParams() {
     var p  = new URLSearchParams(window.location.search);
     return {
@@ -495,14 +423,12 @@ var ClassPage = (function () {
       menuAuth:    p.get('menuAuth')  || '모든메뉴'
     };
   }
-
   function _api(action, params, method) {
     var url    = Config.DEPLOY;
     var query  = Object.assign({ action: action }, params || {});
     var qs     = Object.keys(query)
                    .map(function(k){ return encodeURIComponent(k)+'='+encodeURIComponent(query[k]); })
                    .join('&');
-
     if (!method || method === 'GET') {
       return fetch(url + '?' + qs).then(function(r){ return r.json(); });
     } else {
@@ -512,8 +438,6 @@ var ClassPage = (function () {
       }).then(function(r){ return r.json(); });
     }
   }
-
-  // ── Toast ──
   function _toast(msg, type) {
     var c  = document.getElementById('toast-container');
     var el = document.createElement('div');
@@ -523,25 +447,16 @@ var ClassPage = (function () {
     setTimeout(function(){ el.style.opacity='0'; el.style.transform='translateY(12px)';
       el.style.transition='.3s'; setTimeout(function(){ el.remove(); }, 320); }, 3000);
   }
-
-  // ============================================================
-  // 🚀 초기화
-  // ============================================================
   function init() {
     var p = _getParams();
     state.studentId   = p.studentId;
     state.studentName = p.studentName;
-
     if (!state.studentId || !state.studentName) {
       document.getElementById('tab-loading').textContent = '접속 정보가 없습니다. 다시 로그인해 주세요.';
       return;
     }
     _loadCourses();
   }
-
-  // ============================================================
-  // 📚 수강 과목 목록 로드
-  // ============================================================
   function _loadCourses() {
     NaviComponent.showLoading('불러오는 중입니다...');
     _api('classGetCourses', {
@@ -550,12 +465,10 @@ var ClassPage = (function () {
     }).then(function(res) {
       NaviComponent.hideLoading();
       document.getElementById('tab-loading').remove();
-
       if (!res.success || !res.data || res.data.length === 0) {
         document.getElementById('empty-state').style.display = '';
         return;
       }
-
       state.courses = res.data;
       _renderTabs();
       _selectTab(0);
@@ -564,14 +477,9 @@ var ClassPage = (function () {
       NaviComponent.showAlert('과목을 불러오는 중 오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
     });
   }
-
-  // ============================================================
-  // 🗂️ 탭 렌더링
-  // ============================================================
   function _renderTabs() {
     var container = document.getElementById('course-tabs');
     container.innerHTML = '';
-
     state.courses.forEach(function(c, i) {
       var btn = document.createElement('button');
       btn.className   = 'tab-btn';
@@ -581,28 +489,17 @@ var ClassPage = (function () {
       container.appendChild(btn);
     });
   }
-
-  // ============================================================
-  // 📌 탭 선택
-  // ============================================================
   function _selectTab(idx) {
     state.activeIdx = idx;
-    // 탭 버튼 활성화
     document.querySelectorAll('.tab-btn').forEach(function(btn, i) {
       btn.classList.toggle('active', i === idx);
     });
     _renderCard(idx);
   }
-
-  // ============================================================
-  // 🃏 카드 렌더링 + 데이터 로드
-  // ============================================================
   function _renderCard(idx) {
     var area = document.getElementById('card-area');
     var c    = state.courses[idx];
     var key  = c.teacher + '_' + c.course;
-
-    // 카드 HTML 골격
     area.innerHTML = '';
     var card = document.createElement('div');
     card.className = 'course-card';
@@ -617,13 +514,10 @@ var ClassPage = (function () {
         '</div>' +
       '</div>';
     area.appendChild(card);
-
-    // 데이터 로드 (캐시 또는 API)
     if (state.cardCache[key]) {
       _fillCard(idx, state.cardCache[key]);
       return;
     }
-
     NaviComponent.showLoading('불러오는 중입니다...');
     Promise.all([
       _api('classGetCardData', {
@@ -650,7 +544,6 @@ var ClassPage = (function () {
       var cardData      = (cardRes.success       && cardRes.data)        ? cardRes.data        : {};
       var files         = (fileRes.success       && fileRes.files)       ? fileRes.files       : [];
       var teacherFiles  = (teacherFileRes.success && teacherFileRes.files) ? teacherFileRes.files : [];
-
       var merged = Object.assign({}, cardData, { files: files, teacherFiles: teacherFiles });
       state.cardCache[key] = merged;
       _fillCard(idx, merged);
@@ -661,23 +554,16 @@ var ClassPage = (function () {
         '<p style="color:var(--danger);font-size:.875rem;">오류: ' + e.message + '</p>';
     });
   }
-
-  // ============================================================
-  // 🖊️ 카드 내용 채우기
-  // ============================================================
   function _fillCard(idx, data) {
     var c    = state.courses[idx];
     var body = document.getElementById('card-body-' + idx);
     if (!body) return;
-
     var notice       = data.notice        || '';
     var extraTitle   = data.extraTitle    || '';
     var submitContent= data.submitContent || '';
     var files        = data.files         || [];
     var extraItems   = data.extraItems    || [];
     var teacherFiles = data.teacherFiles  || [];
-
-    // ── 공지사항 섹션 ──
     var noticeHtml =
       '<div class="section-panel section-panel--notice">' +
         '<div class="section-label" style="color:#1d4ed8;">📢 공지사항</div>' +
@@ -685,8 +571,6 @@ var ClassPage = (function () {
           (notice ? _escHtml(notice) : '등록된 공지사항이 없습니다.') +
         '</div>' +
       '</div>';
-
-    // ── 개인별 공지사항 버튼 (extraTitle 있을 때만) ──
     var extraBtnHtml = '';
     if (extraTitle) {
       extraBtnHtml =
@@ -698,8 +582,6 @@ var ClassPage = (function () {
           '<span style="margin-left:10px;font-size:0.875rem;color:#7c3aed;font-weight:600;">' + (extraItems.length > 0 ? _escHtml(extraTitle) + ' 관련 공지 사항이 있습니다.' : '개인 공지사항이 없습니다.') + '</span>' +
         '</div>';
     }
-
-    // ── 교사 제공 파일 섹션 ──
     var teacherFilesHtml = '<div class="section-panel section-panel--teacher-files">';
     teacherFilesHtml += '<div class="section-label" style="color:#065f46;">📂 선생님 제공 파일</div>';
     teacherFilesHtml += '<div class="file-list">';
@@ -718,14 +600,11 @@ var ClassPage = (function () {
       });
     }
     teacherFilesHtml += '</div></div>';
-
-    // ── 내용 입력 섹션 (저장 버튼을 레이블 옆으로 이동) ──
     var contentHtml =
       '<div class="section-panel section-panel--content">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px;">' +
           '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
             '<div class="section-label" style="margin-bottom:0;color:#c2410c;">✏️ 내용 입력 (교과세특 · 수행평가 등)</div>' +
-            // 바이트 카운터 — 실시간으로 갱신됨 (초과 시 빨간색으로 변경)
             '<span class="byte-counter" id="byte-counter-' + idx + '">( 0 바이트 / 1500 바이트 )</span>' +
           '</div>' +
           '<button class="btn btn-primary" id="save-btn-' + idx + '" ' +
@@ -739,8 +618,6 @@ var ClassPage = (function () {
           _escHtml(submitContent) +
         '</textarea>' +
       '</div>';
-
-    // ── 업로드된 파일 섹션 ──
     var fileListHtml = '<div class="file-list" id="file-list-' + idx + '">';
     if (files.length === 0) {
       fileListHtml += '<p class="file-empty">제출된 파일이 없습니다.</p>';
@@ -757,14 +634,11 @@ var ClassPage = (function () {
       });
     }
     fileListHtml += '</div>';
-
     var filesSection =
       '<div class="section-panel section-panel--files">' +
         '<div class="section-label" style="color:#475569;">📁 업로드된 파일</div>' +
         fileListHtml +
       '</div>';
-
-    // ── 파일 업로드 섹션 ──
     var uploadSection =
       '<div class="section-panel section-panel--files">' +
         '<div class="section-label" style="color:#475569;">⬆️ 파일 업로드 (제한용량 : 10MB)</div>' +
@@ -794,26 +668,14 @@ var ClassPage = (function () {
           '<div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill-' + idx + '" style="width:0%"></div></div>' +
         '</div>' +
       '</div>';
-
     body.innerHTML = noticeHtml + extraBtnHtml + teacherFilesHtml + contentHtml + filesSection + uploadSection;
-
-    // 카드 렌더 직후 초기 바이트 수 계산 (기존 저장 내용이 있을 경우 반영)
     ClassPage.updateByteCount(idx);
   }
-
-  // ============================================================
-  // 🔢 바이트 수 실시간 계산
-  // ── 한글(가-힣, 자모, 한자 등): 1글자 = 3바이트
-  // ── 그 외 모든 문자(공백 포함): 1글자 = 1바이트
-  // ── 최대 허용 바이트: BYTE_LIMIT (아래 상수에서 변경)
-  // ============================================================
-  var BYTE_LIMIT = 1500; // ★ 바이트 제한 변경 시 이 값만 수정하면 됩니다 ★
-
+  var BYTE_LIMIT = 1500; 
   function _calcBytes(str) {
     var bytes = 0;
     for (var i = 0; i < str.length; i++) {
       var code = str.charCodeAt(i);
-      // 한글 유니코드 범위: AC00–D7A3(완성형), 1100–11FF(자모), 3130–318F(호환 자모), 4E00–9FFF(CJK 한자)
       if (
         (code >= 0xAC00 && code <= 0xD7A3) ||
         (code >= 0x1100 && code <= 0x11FF) ||
@@ -827,29 +689,20 @@ var ClassPage = (function () {
     }
     return bytes;
   }
-
   function updateByteCount(idx) {
     var ta      = document.getElementById('content-input-' + idx);
     var counter = document.getElementById('byte-counter-' + idx);
     if (!ta || !counter) return;
     var bytes = _calcBytes(ta.value);
     counter.textContent = '( ' + bytes + ' 바이트 / ' + BYTE_LIMIT + ' 바이트 )';
-    // 초과 시 카운터 색상을 빨간색으로 변경
     if (bytes > BYTE_LIMIT) {
       counter.classList.add('over-limit');
     } else {
       counter.classList.remove('over-limit');
     }
   }
-
-  // ============================================================
-  // 📁 파일 용량 체크
-  // ── 최대 허용 업로드 파일 크기: FILE_MAX_MB (아래 상수에서 변경)
-  // ── 예) 20 MB로 변경하려면 → var FILE_MAX_MB = 20;
-  // ============================================================
-  var FILE_MAX_MB   = 10;                        // ★ 파일 최대 용량(MB) 변경 시 이 값만 수정하면 됩니다 ★
-  var FILE_MAX_BYTES = FILE_MAX_MB * 1024 * 1024; // MB → Bytes 자동 변환
-
+  var FILE_MAX_MB   = 10;                        
+  var FILE_MAX_BYTES = FILE_MAX_MB * 1024 * 1024; 
   function _checkFileSize(file) {
     if (file.size > FILE_MAX_BYTES) {
       var sizeMB   = (file.size / (1024 * 1024)).toFixed(1);
@@ -860,21 +713,15 @@ var ClassPage = (function () {
           FILE_MAX_MB + ' MB 이하의 파일만 업로드할 수 있습니다.';
       }
       document.getElementById('file-size-modal').style.display = 'flex';
-      return false; // 업로드 차단
+      return false; 
     }
-    return true;    // 용량 정상
+    return true;    
   }
-
-  // ============================================================
-  // 💾 내용 저장
-  // ============================================================
   function saveContent(idx) {
     var c      = state.courses[idx];
     var ta     = document.getElementById('content-input-' + idx);
     var content= ta ? ta.value.trim() : '';
-
     NaviComponent.showLoading('저장 중입니다...');
-
     _api('classSaveContent', {
       studentId:   state.studentId,
       studentName: state.studentName,
@@ -884,7 +731,6 @@ var ClassPage = (function () {
     }, 'POST').then(function(res) {
       NaviComponent.hideLoading();
       if (res.success) {
-        // 캐시 갱신
         var key = c.teacher + '_' + c.course;
         if (state.cardCache[key]) state.cardCache[key].submitContent = content;
         NaviComponent.showAlert('내용이 저장되었습니다.', null, { icon: '✅' });
@@ -896,9 +742,6 @@ var ClassPage = (function () {
       NaviComponent.showAlert('저장 중 오류가 발생했습니다.<br>' + e.message, null, { icon: '⚠️' });
     });
   }
-  // ============================================================
-  // 📁 파일 삭제
-  // ============================================================
   function deleteFile(fileId, idx) {
     NaviComponent.showConfirmDialog('파일을 삭제하시겠습니까?', function() {
       NaviComponent.showLoading('삭제 중입니다...');
@@ -909,16 +752,13 @@ var ClassPage = (function () {
       }, 'POST').then(function(res) {
         NaviComponent.hideLoading();
         if (res.success) {
-          // DOM에서 제거
           var el = document.getElementById('fi-' + fileId);
           if (el) el.remove();
-          // 캐시에서 제거
           var c   = state.courses[idx];
           var key = c.teacher + '_' + c.course;
           if (state.cardCache[key] && state.cardCache[key].files) {
             state.cardCache[key].files = state.cardCache[key].files.filter(function(f){ return f.id !== fileId; });
           }
-          // 파일 없으면 빈 메시지 표시
           var list = document.getElementById('file-list-' + idx);
           if (list && list.querySelectorAll('.file-item').length === 0) {
             list.innerHTML = '<p class="file-empty">제출된 파일이 없습니다.</p>';
@@ -933,10 +773,6 @@ var ClassPage = (function () {
       });
     });
   }
-
-  // ============================================================
-  // 📤 파일 업로드 - 이벤트
-  // ============================================================
   function onDragOver(e, idx) {
     e.preventDefault();
     var z = document.getElementById('upload-zone-' + idx);
@@ -958,12 +794,8 @@ var ClassPage = (function () {
     if (f) _showFilePreview(f, idx);
     e.target.value = '';
   }
-
-  // ── 파일 미리보기 표시 ──
-  var _pendingFiles = {};   // idx → File 객체 임시 저장
-
+  var _pendingFiles = {};   
   function _showFilePreview(file, idx) {
-    // 파일 용량 초과 시 모달 표시 후 업로드 차단
     if (!_checkFileSize(file)) return;
     _pendingFiles[idx] = file;
     var preview = document.getElementById('file-preview-' + idx);
@@ -973,7 +805,6 @@ var ClassPage = (function () {
       preview.style.display = '';
     }
   }
-
   function confirmUpload(idx) {
     var file = _pendingFiles[idx];
     if (!file) return;
@@ -982,45 +813,36 @@ var ClassPage = (function () {
     if (preview) preview.style.display = 'none';
     _uploadFile(file, idx);
   }
-
   function cancelUpload(idx) {
     delete _pendingFiles[idx];
     var preview = document.getElementById('file-preview-' + idx);
     if (preview) preview.style.display = 'none';
   }
-
-  // ============================================================
-  // 📤 파일 업로드 - 실행
-  // ============================================================
   function _uploadFile(file, idx) {
     var c       = state.courses[idx];
     var progWrap= document.getElementById('upload-progress-' + idx);
     var progText= document.getElementById('upload-progress-text-' + idx);
     var progFill= document.getElementById('progress-fill-' + idx);
-
     NaviComponent.showLoading('저장 중입니다...');
     progWrap.style.display = '';
     progText.textContent   = '파일을 읽는 중… (' + file.name + ')';
     progFill.style.width   = '20%';
-
     var reader = new FileReader();
     reader.onload = function(ev) {
       progFill.style.width   = '50%';
       progText.textContent   = '업로드 중… (' + file.name + ')';
-
       _api('classUploadFile', {
         studentId:   state.studentId,
         studentName: state.studentName,
         teacherName: c.teacher,
         courseName:  c.course,
         fileName:    file.name,
-        fileData:    ev.target.result,  // base64 dataURL
+        fileData:    ev.target.result,  
         mimeType:    file.type || 'application/octet-stream'
       }, 'POST').then(function(res) {
         progFill.style.width = '100%';
         NaviComponent.hideLoading();
         if (res.success) {
-          // 파일 목록 갱신 (캐시 삭제 후 카드 재렌더)
           var key = c.teacher + '_' + c.course;
           delete state.cardCache[key];
           NaviComponent.showAlert(res.message || '파일이 업로드되었습니다.', function() {
@@ -1043,17 +865,11 @@ var ClassPage = (function () {
     };
     reader.readAsDataURL(file);
   }
-
-  // ============================================================
-  // 📋 개인별 공지사항 모달
-  // ============================================================
   function openExtraModal(idx) {
     var key  = state.courses[idx].teacher + '_' + state.courses[idx].course;
     var data = state.cardCache[key];
     if (!data || !data.extraItems || data.extraItems.length === 0) return;
-
     document.querySelector('#extra-modal .modal-header span').textContent = data.extraTitle || '개인별 공지사항';
-
     var body = document.getElementById('extra-modal-body');
     body.innerHTML = data.extraItems.map(function(item) {
       return '<div class="extra-item">' +
@@ -1061,22 +877,14 @@ var ClassPage = (function () {
         '<div class="extra-item-value">' + _escHtml(item.value) + '</div>' +
         '</div>';
     }).join('');
-
     document.getElementById('extra-modal').style.display = 'flex';
   }
-
   function closeExtraModal() {
     document.getElementById('extra-modal').style.display = 'none';
   }
-
-  // 모달 바깥 클릭 시 닫기
   document.getElementById('extra-modal').addEventListener('click', function(e) {
     if (e.target === this) closeExtraModal();
   });
-
-  // ============================================================
-  // 🔒 HTML 이스케이프
-  // ============================================================
   function _escHtml(str) {
     return String(str)
       .replace(/&/g,'&amp;')
@@ -1084,10 +892,6 @@ var ClassPage = (function () {
       .replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;');
   }
-
-  // ============================================================
-  // 🔓 공개 API
-  // ============================================================
   return {
     init:            init,
     saveContent:     saveContent,
@@ -1100,12 +904,9 @@ var ClassPage = (function () {
     cancelUpload:    cancelUpload,
     openExtraModal:  openExtraModal,
     closeExtraModal: closeExtraModal,
-    updateByteCount: updateByteCount   // 바이트 카운터 실시간 갱신
+    updateByteCount: updateByteCount   
   };
-
 })();
-
-// ── 페이지 로드 시 실행 ──
 document.addEventListener('DOMContentLoaded', function () {
   var p = new URLSearchParams(window.location.search);
   NaviComponent.init({
