@@ -662,7 +662,7 @@ function downloadStudentTemplate() {
       if (textarea && res && res.success && res.data) {
         textarea.value = res.data;
       } else if (textarea) {
-        textarea.placeholder = '입력된 전체공지 내용은 없습니다.';
+        textarea.placeholder = '입력된 전체공지 내용은 없습니다. 내용을 입력하고 저장 버튼을 클릭하세요.';
       }
     } catch(e) {}
     _refreshDriveFileList();
